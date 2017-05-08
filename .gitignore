@@ -1,10 +1,28 @@
 *.class
+*.log.*
+*.log
+
+.metadata/
+RemoteSystemsTempFiles/
+.DS_Store/
+Servers/
+bin/
+upload_img/
+classes/
+backup/
+src/data-origin-generator/webapp/
+.recommenders
+.gitignore
+.idea/
+.settings/
+.classpath
+temp/
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
 # Package Files #
-*.jar
+#*.jar
 *.war
 *.ear
 
