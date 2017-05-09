@@ -14,33 +14,33 @@ import com.salama.service.script.util.script.ScriptEngineUtil;
 public class TestScriptTypes {
     
     @Test
-    public void test_4() {
+    public void test_staticMethod() {
         try {
             final ScriptEngine engine = createEngine();
 
             Object retVal = testScriptAndPrint(
                     engine, 
-                    "var obj = {k1: 'v1', k2: 'v2', 'k3':100};"
-                    + " JSON.stringfy(obj);"
+                    "var TestUtil2 = Java.type('com.salama.service.script.util.junittest.util.TestUtil2');"
+                    + " TestUtil2.testStrList();"
                     );
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
     
-    public void test_3() {
+    public void test_List() {
         try {
             final ScriptEngine engine = createEngine();
 
             testScriptAndPrint(
                     engine, 
-                    "var arr = $testUtil.testStrArray();"
+                    "var arr = testUtil.testStrArray();"
                     + " arr[1];"
                     );
             
             testScriptAndPrint(
                     engine, 
-                    "var list = $testUtil.testStrList();"
+                    "var list = testUtil.testStrList();"
                     + " list[1];"
                     );
         } catch (Throwable e) {
@@ -48,23 +48,23 @@ public class TestScriptTypes {
         }
     }
     
-    public void test_2() {
+    public void test_Map() {
         try {
             final ScriptEngine engine = createEngine();
 
             testScriptAndPrint(
                     engine, 
-                    "var map = $testUtil.testComplexMap();"
+                    "var map = testUtil.testComplexMap();"
                     + " map['k1'];"
                     );
             testScriptAndPrint(
                     engine, 
-                    "var map = $testUtil.testComplexMap();"
+                    "var map = testUtil.testComplexMap();"
                     + " map['m1'];"
                     );
             testScriptAndPrint(
                     engine, 
-                    "var map = $testUtil.testComplexMap();"
+                    "var map = testUtil.testComplexMap();"
                     + " map['m1']['m2']['k3'];"
                     );
         } catch (Throwable e) {
@@ -72,21 +72,21 @@ public class TestScriptTypes {
         }
     }
     
-    public void test_1() {
+    public void test_BaseTypes() {
         try {
             final ScriptEngine engine = createEngine();
 
-            testScriptAndPrint(engine, "$testUtil.ymdHms()");
+            testScriptAndPrint(engine, "testUtil.ymdHms()");
 
-            testScriptAndPrint(engine, "$testUtil.utc()");
+            testScriptAndPrint(engine, "testUtil.utc()");
 
-            testScriptAndPrint(engine, "$testUtil.testPlainMap()");
+            testScriptAndPrint(engine, "testUtil.testPlainMap()");
 
-            testScriptAndPrint(engine, "$testUtil.testComplexMap()");
+            testScriptAndPrint(engine, "testUtil.testComplexMap()");
 
-            testScriptAndPrint(engine, "$testUtil.testStrArray()");
+            testScriptAndPrint(engine, "testUtil.testStrArray()");
             
-            testScriptAndPrint(engine, "$testUtil.testStrList()");
+            testScriptAndPrint(engine, "testUtil.testStrList()");
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -102,7 +102,7 @@ public class TestScriptTypes {
         return retVal;
     }
     
-    private static void printObj(
+    public static void printObj(
             String msgPrefix,
             Object obj
             ) {
@@ -116,7 +116,7 @@ public class TestScriptTypes {
     private static ScriptEngine createEngine() {
         final ScriptEngineManager engineManager = ScriptEngineUtil.createEngineManager();
         //global variables -----------------------------
-        engineManager.put("$testUtil", new TestUtil());
+        engineManager.put("testUtil", new TestUtil());
         
         final ScriptEngine engine = ScriptEngineUtil.createScriptEngine(engineManager);
         
