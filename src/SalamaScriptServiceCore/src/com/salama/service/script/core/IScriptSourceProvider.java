@@ -1,12 +1,9 @@
 package com.salama.service.script.core;
 
-import java.io.File;
+import com.salama.service.core.context.CommonContext;
 
-public interface IScriptSourceProvider {
+public interface IScriptSourceProvider extends CommonContext {
 
-    void reload(File configFile);
-
-    void destroy();
     
     void addWatcher(IScriptSourceWatcher watcher);
         

@@ -1,4 +1,4 @@
-package com.salama.service.script.util.junittest;
+package com.salama.service.script.test.junittest;
 
 public interface ITest1 {
 

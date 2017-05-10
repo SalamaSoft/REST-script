@@ -1,4 +1,4 @@
-package com.salama.service.script.util.junittest;
+package com.salama.service.script.test.junittest;
 
 import javax.script.Compilable;
 import javax.script.CompiledScript;
@@ -7,8 +7,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 import org.junit.Test;
-
-import com.salama.service.script.util.script.ScriptEngineUtil;
 
 public class TestScriptCompiled {
 

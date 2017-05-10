@@ -19,16 +19,17 @@ import com.salama.service.core.net.ResponseWrapper;
 import com.salama.service.core.net.http.HttpRequestWrapper;
 import com.salama.service.core.net.http.HttpResponseWrapper;
 import com.salama.service.core.net.http.HttpSessionWrapper;
+import com.salama.service.script.config.ScriptServletConfig;
 import com.salama.util.http.upload.FileUploadSupport;
 
-public abstract class ScriptServlet extends javax.servlet.http.HttpServlet {
+public class ScriptServlet extends javax.servlet.http.HttpServlet {
 
     private static final long serialVersionUID = -1759081420866762147L;
 
     private final static Logger logger = Logger.getLogger(ScriptServlet.class);
     
     private com.salama.server.servlet.ServiceContext _servletServiceContext = null;
-    
+    private ScriptServiceContext _scriptServletContext = null;
     
     @Override
     public void init() throws ServletException {
@@ -38,6 +39,9 @@ public abstract class ScriptServlet extends javax.servlet.http.HttpServlet {
         _servletServiceContext = (com.salama.server.servlet.ServiceContext) ServiceContext.getContext(
                 getServletContext()).getContext(com.salama.server.servlet.ServiceContext.class);
         
+        _scriptServletContext = (ScriptServiceContext) ServiceContext.getContext(
+                getServletContext()).getContext(ScriptServiceContext.class
+                        );
     }
     
     @Override
@@ -120,7 +124,9 @@ public abstract class ScriptServlet extends javax.servlet.http.HttpServlet {
         return true;
     }
     
-    protected abstract String doService(RequestWrapper request, ResponseWrapper response);
+    protected String doService(RequestWrapper request, ResponseWrapper response) {
+        
+    }
 
     private static void httpOutput(HttpServletResponse response, String content) {
         if(content == null) {

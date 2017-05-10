@@ -1,4 +1,4 @@
-package com.salama.service.script.util.junittest;
+package com.salama.service.script.test.junittest;
 
 import java.util.Map;
 
@@ -7,9 +7,6 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import org.junit.Test;
-
-import com.salama.service.script.util.junittest.util.TestUtil;
-import com.salama.service.script.util.script.ScriptEngineUtil;
 
 public class TestScriptTypes {
     

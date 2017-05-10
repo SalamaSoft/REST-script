@@ -1,4 +1,4 @@
-package com.salama.service.script.util.script;
+package com.salama.service.script.test.junittest;
 
 import javax.script.Compilable;
 import javax.script.CompiledScript;

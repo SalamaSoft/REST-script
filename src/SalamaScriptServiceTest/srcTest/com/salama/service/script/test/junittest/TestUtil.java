@@ -1,4 +1,4 @@
-package com.salama.service.script.util.junittest.util;
+package com.salama.service.script.test.junittest;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
