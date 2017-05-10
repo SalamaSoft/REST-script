@@ -2,6 +2,8 @@ package com.salama.service.script.core;
 
 import java.io.Reader;
 
+import javax.script.ScriptException;
+
 public interface IScriptSourceWatcher {
 
     /**
@@ -25,8 +27,9 @@ public interface IScriptSourceWatcher {
      * @param name Be unique in one app. 
      * @param script source of script. It should return one object which implements methods of IScriptService.
      * 
+     * @return name of the script
      */
-    void onScriptSourceUpdated(String app, Reader script);
+    String onScriptSourceUpdated(String app, Reader script) throws ScriptException;
     
     /**
      * This method is invoked when source of script deleted.

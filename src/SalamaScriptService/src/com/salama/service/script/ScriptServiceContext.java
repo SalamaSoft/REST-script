@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import com.salama.service.core.context.CommonContext;
 import com.salama.service.script.config.ScriptContextSetting;
 import com.salama.service.script.config.ScriptServletConfig;
+import com.salama.service.script.core.IScriptServletUriParser;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.util.ClassLoaderUtil;
 
@@ -21,9 +22,11 @@ class ScriptServiceContext implements CommonContext {
     
     private ScriptServletConfig _config;
     private IScriptSourceProvider _scriptSourceProvider;
-    
-    public IScriptSourceProvider getScriptSourceProvider() {
-        return _scriptSourceProvider;
+    private ScriptServiceDispatcher _scriptServiceDispatcher;
+    private IScriptServletUriParser _scriptServletUriParser;
+
+    public ScriptServiceDispatcher getScriptServiceDispatcher() {
+        return _scriptServiceDispatcher;
     }
 
     @Override
@@ -49,6 +52,7 @@ class ScriptServiceContext implements CommonContext {
                         }
                     });
             
+            //ScriptSourceProvider
             Class<? extends IScriptSourceProvider> typeScriptSourceProvider = 
                     (Class<? extends IScriptSourceProvider>) ClassLoaderUtil.getDefaultClassLoader().loadClass(
                             _config.getScriptSourceProviderSetting().getClassName()
@@ -61,6 +65,26 @@ class ScriptServiceContext implements CommonContext {
                     + " configLocation:" + _config.getScriptSourceProviderSetting().getConfigLocation()
                     );
             
+            
+            //ScriptServiceDispatcher
+            _scriptServiceDispatcher = new ScriptServiceDispatcher(_config.getScriptEngineName(), _scriptSourceProvider);
+            logger.info(
+                    "reload()"
+                    + " _scriptServiceDispatcher -> engineName: " + _config.getScriptEngineName()
+                    );
+            
+            //_scriptServletUriParser
+            String scriptServletUriParserClassName = _config.getScriptServletUriParserClassName();
+            if(scriptServletUriParserClassName != null && scriptServletUriParserClassName.trim().length() > 0) {
+                Class<? extends IScriptServletUriParser> cls = 
+                        (Class<? extends IScriptServletUriParser>) ClassLoaderUtil.getDefaultClassLoader().loadClass(
+                                scriptServletUriParserClassName
+                                );
+                _scriptServletUriParser = cls.newInstance();
+            } else {
+                
+            }
+             
             logger.info("reload() finished");
         } catch (Throwable e) {
             logger.error("reload()", e);

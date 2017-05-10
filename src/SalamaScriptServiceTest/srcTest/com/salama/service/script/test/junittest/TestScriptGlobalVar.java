@@ -37,7 +37,10 @@ public class TestScriptGlobalVar {
                         ; 
                 final ScriptEngine engine = ScriptEngineUtil.createScriptEngine(engineManager);
                 engine.eval(script);
-                
+
+                //Error occurs after clearing the global variable
+                engineManager.put("$TestUtil", null);
+                engine.eval(script);
             }
 
         } catch (Throwable e) {

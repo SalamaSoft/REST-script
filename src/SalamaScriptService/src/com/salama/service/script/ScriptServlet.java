@@ -4,7 +4,9 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Enumeration;
+import java.util.concurrent.atomic.AtomicLong;
 
+import javax.script.CompiledScript;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,8 +30,13 @@ public class ScriptServlet extends javax.servlet.http.HttpServlet {
 
     private final static Logger logger = Logger.getLogger(ScriptServlet.class);
     
+    private final static AtomicLong _servletCounter = new AtomicLong();
+    
     private com.salama.server.servlet.ServiceContext _servletServiceContext = null;
     private ScriptServiceContext _scriptServletContext = null;
+    private ScriptServiceDispatcher _serviceDispatcher = null;
+    
+    private long _servletNum;
     
     @Override
     public void init() throws ServletException {
@@ -42,6 +49,10 @@ public class ScriptServlet extends javax.servlet.http.HttpServlet {
         _scriptServletContext = (ScriptServiceContext) ServiceContext.getContext(
                 getServletContext()).getContext(ScriptServiceContext.class
                         );
+        _serviceDispatcher = _scriptServletContext.getScriptServiceDispatcher();
+        
+        _servletNum = _servletCounter.getAndIncrement();
+        logger.info("ScriptServlet[" + _servletNum + "] inited.");
     }
     
     @Override
@@ -125,7 +136,15 @@ public class ScriptServlet extends javax.servlet.http.HttpServlet {
     }
     
     protected String doService(RequestWrapper request, ResponseWrapper response) {
+        String uri = ((HttpServletRequest) request.getRequest()).getRequestURI();
         
+        //parse URI
+        String app = 
+        {
+            
+        }
+        
+        _scriptServletContext.getScriptServiceDispatcher().getCompiledScript(app, serviceName)
     }
 
     private static void httpOutput(HttpServletResponse response, String content) {
