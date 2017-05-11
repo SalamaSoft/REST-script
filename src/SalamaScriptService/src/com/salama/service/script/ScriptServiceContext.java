@@ -7,12 +7,11 @@ import org.apache.log4j.Logger;
 import com.salama.service.core.context.CommonContext;
 import com.salama.service.script.config.ScriptContextSetting;
 import com.salama.service.script.config.ScriptServletConfig;
-import com.salama.service.script.core.IScriptServletUriParser;
 import com.salama.service.script.core.IScriptSourceProvider;
+import com.salama.service.script.core.IServiceTargetFinder;
 import com.salama.util.ClassLoaderUtil;
 
 import MetoXML.XmlDeserializer;
-import MetoXML.XmlSerializer;
 import MetoXML.Util.ClassFinder;
 
 class ScriptServiceContext implements CommonContext {
@@ -23,12 +22,13 @@ class ScriptServiceContext implements CommonContext {
     private ScriptServletConfig _config;
     private IScriptSourceProvider _scriptSourceProvider;
     private ScriptServiceDispatcher _scriptServiceDispatcher;
-    private IScriptServletUriParser _scriptServletUriParser;
+    private IServiceTargetFinder _serviceTargetFinder;
 
-    public ScriptServiceDispatcher getScriptServiceDispatcher() {
+    public ScriptServiceDispatcher getServiceDispatcher() {
         return _scriptServiceDispatcher;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void reload(ServletContext servletContext, String configLocation) {
         logger.info("reload() configLocation:" + configLocation);
@@ -52,7 +52,7 @@ class ScriptServiceContext implements CommonContext {
                         }
                     });
             
-            //ScriptSourceProvider
+            //ScriptSourceProvider -------------------------------
             Class<? extends IScriptSourceProvider> typeScriptSourceProvider = 
                     (Class<? extends IScriptSourceProvider>) ClassLoaderUtil.getDefaultClassLoader().loadClass(
                             _config.getScriptSourceProviderSetting().getClassName()
@@ -61,31 +61,39 @@ class ScriptServiceContext implements CommonContext {
             _scriptSourceProvider.reload(servletContext, _config.getScriptSourceProviderSetting().getConfigLocation());
             logger.info(
                     "reload()"
-                    + " ScriptSourceProvider loaded:" + _config.getScriptSourceProviderSetting().getClassName()
+                    + " ScriptSourceProvider loaded -> " + _config.getScriptSourceProviderSetting().getClassName()
                     + " configLocation:" + _config.getScriptSourceProviderSetting().getConfigLocation()
                     );
             
-            
-            //ScriptServiceDispatcher
-            _scriptServiceDispatcher = new ScriptServiceDispatcher(_config.getScriptEngineName(), _scriptSourceProvider);
+            //IServiceTargetFinder -------------------------------
+            String serviceTargetFinderClass = _config.getServiceTargetFinder();
+            if(serviceTargetFinderClass != null && serviceTargetFinderClass.trim().length() > 0) {
+                Class<? extends IServiceTargetFinder> cls = 
+                        (Class<? extends IServiceTargetFinder>) ClassLoaderUtil.getDefaultClassLoader().loadClass(
+                                serviceTargetFinderClass
+                                );
+                _serviceTargetFinder = cls.newInstance();
+            } else {
+                _serviceTargetFinder = new DefaultServiceTargetFinder();
+            }
             logger.info(
                     "reload()"
-                    + " _scriptServiceDispatcher -> engineName: " + _config.getScriptEngineName()
+                    + " _serviceTargetFinder inited -> " + _serviceTargetFinder.getClass().getName()
                     );
             
-            //_scriptServletUriParser
-            String scriptServletUriParserClassName = _config.getScriptServletUriParserClassName();
-            if(scriptServletUriParserClassName != null && scriptServletUriParserClassName.trim().length() > 0) {
-                Class<? extends IScriptServletUriParser> cls = 
-                        (Class<? extends IScriptServletUriParser>) ClassLoaderUtil.getDefaultClassLoader().loadClass(
-                                scriptServletUriParserClassName
-                                );
-                _scriptServletUriParser = cls.newInstance();
-            } else {
-                
-            }
+            //ScriptServiceDispatcher -------------------------------
+            _scriptServiceDispatcher = new ScriptServiceDispatcher(
+                    _config.getScriptEngineName(), 
+                    _scriptSourceProvider,
+                    _serviceTargetFinder
+                    );
+            logger.info(
+                    "reload()"
+                    + " _scriptServiceDispatcher inited -> engineName: " + _config.getScriptEngineName()
+                    );
+            
              
-            logger.info("reload() finished");
+            logger.info("reload() finished -----");
         } catch (Throwable e) {
             logger.error("reload()", e);
             return;

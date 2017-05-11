@@ -25,10 +25,14 @@ import com.salama.service.script.config.ScriptServletConfig;
 import com.salama.util.http.upload.FileUploadSupport;
 
 public class ScriptServlet extends javax.servlet.http.HttpServlet {
-
     private static final long serialVersionUID = -1759081420866762147L;
-
     private final static Logger logger = Logger.getLogger(ScriptServlet.class);
+    
+    /**
+     * "xml" | "json"
+     * Default "xml" when empty 
+     */
+    public final static String HTTP_HEADER_RESPONSE_TYPE = "Response-Type";
     
     private final static AtomicLong _servletCounter = new AtomicLong();
     
@@ -49,7 +53,7 @@ public class ScriptServlet extends javax.servlet.http.HttpServlet {
         _scriptServletContext = (ScriptServiceContext) ServiceContext.getContext(
                 getServletContext()).getContext(ScriptServiceContext.class
                         );
-        _serviceDispatcher = _scriptServletContext.getScriptServiceDispatcher();
+        _serviceDispatcher = _scriptServletContext.getServiceDispatcher();
         
         _servletNum = _servletCounter.getAndIncrement();
         logger.info("ScriptServlet[" + _servletNum + "] inited.");
@@ -136,15 +140,15 @@ public class ScriptServlet extends javax.servlet.http.HttpServlet {
     }
     
     protected String doService(RequestWrapper request, ResponseWrapper response) {
-        String uri = ((HttpServletRequest) request.getRequest()).getRequestURI();
-        
-        //parse URI
-        String app = 
-        {
-            
+        try {
+            //TODO
+            Object retVal = _serviceDispatcher.dispatch(request, response);
+            return "" + retVal;
+        } catch (Throwable e) {
+            logger.error(null, e);
+            return null;
         }
         
-        _scriptServletContext.getScriptServiceDispatcher().getCompiledScript(app, serviceName)
     }
 
     private static void httpOutput(HttpServletResponse response, String content) {

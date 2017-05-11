@@ -1,6 +1,9 @@
 package com.salama.service.script;
 
 import java.io.Reader;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,16 +16,23 @@ import javax.script.ScriptException;
 
 import org.apache.log4j.Logger;
 
+import com.salama.service.core.net.RequestWrapper;
+import com.salama.service.core.net.ResponseWrapper;
 import com.salama.service.script.core.IScriptService;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IScriptSourceWatcher;
+import com.salama.service.script.core.IServiceTargetFinder;
+import com.salama.service.script.core.ServiceTarget;
 
 class ScriptServiceDispatcher {
     private final static Logger logger = Logger.getLogger(ScriptServiceDispatcher.class);
-
+    
     private final String _scriptEngineName;
     private final ScriptEngineManager _scriptEngineManager;
+    
     private final IScriptSourceProvider _scriptSourceProvider;
+    private final IServiceTargetFinder _serviceTargetFinder;
+    
     //key:$app    value:ScriptSourceManager
     private final ConcurrentHashMap<String, ScriptSourceManager> _scriptManagerMap = new ConcurrentHashMap<String, ScriptSourceManager>();
     private final ReentrantLock _lockForScriptManager = new ReentrantLock();
@@ -43,6 +53,9 @@ class ScriptServiceDispatcher {
 
         @Override
         public String onScriptSourceUpdated(String app, Reader script) throws ScriptException {
+            if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
+                throw new RuntimeException("Invalid format of app:");
+            }
             String serviceName = getScriptManager(app).updateScript(script);
             logger.info("onScriptSourceUpdated() -> app:" + app + " serviceName:" + serviceName);
             
@@ -58,20 +71,62 @@ class ScriptServiceDispatcher {
     }; 
 
     public ScriptServiceDispatcher(
-            String scriptEngineName, IScriptSourceProvider scriptSourceProvider
+            String scriptEngineName, 
+            IScriptSourceProvider scriptSourceProvider,
+            IServiceTargetFinder serviceTargetFinder
             ) {
         _scriptEngineName = scriptEngineName;
         _scriptSourceProvider = scriptSourceProvider;
+        _serviceTargetFinder = serviceTargetFinder;
         
         _scriptEngineManager = new ScriptEngineManager();
         
         _scriptSourceProvider.addWatcher(_scriptSourceWatcher);
     }
 
-    public CompiledScript getCompiledScript(String app, String serviceName) {
-        return getScriptManager(app).getCompiledScript(serviceName);
+    public Object dispatch(
+            RequestWrapper request, ResponseWrapper response
+            ) throws ScriptException, NoSuchMethodException {
+        ServiceTarget target = _serviceTargetFinder.findOut(request);
+        if(logger.isDebugEnabled()) {
+            logger.debug("Script service dispatch -> "
+                    + " app:" + target.app 
+                    + " service:" + target.serviceName
+                    + " method:" + target.methodName
+                    );
+        }
+        CompiledScript compiledScript = getScriptManager(target.app).getCompiledScript(target.serviceName);
+        if(compiledScript == null) {
+            throw new IllegalArgumentException(
+                    "Script service target not found."
+                    + " app:" + target.app 
+                    + " service:" + target.serviceName
+                    + " method:" + target.methodName
+                    );
+        }
+        
+        Object serviceObj = compiledScript.eval();
+        return ((Invocable) compiledScript.getEngine()).invokeMethod(
+                serviceObj, target.methodName, 
+                parseRequestParams(request),
+                request, response
+                );
     }
     
+    private Map<String, String> parseRequestParams(RequestWrapper request) {
+        Enumeration<String> nameEnum = request.getParameterNames();
+        
+        Map<String, String> paramMap = new HashMap<>();
+        while(nameEnum.hasMoreElements()) {
+            final String name = nameEnum.nextElement();
+            final String value = request.getParameter(name);
+            
+            paramMap.put(name, value);
+        }
+        
+        return paramMap;
+    }
+        
     private ScriptSourceManager getScriptManager(String app) {
         ScriptSourceManager scriptManager = _scriptManagerMap.get(app);
         if(scriptManager != null) {
@@ -122,9 +177,11 @@ class ScriptServiceDispatcher {
             return _scriptMap.get(serviceName);
         }
     }
+
     
-    public ScriptEngine createScriptEngine(ScriptEngineManager engineManager) {
+    private ScriptEngine createScriptEngine(ScriptEngineManager engineManager) {
         return engineManager.getEngineByName(_scriptEngineName);
     }
+    
     
 }

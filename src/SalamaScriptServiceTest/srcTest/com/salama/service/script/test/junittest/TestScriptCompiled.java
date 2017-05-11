@@ -1,5 +1,7 @@
 package com.salama.service.script.test.junittest;
 
+import java.util.Map;
+
 import javax.script.Compilable;
 import javax.script.CompiledScript;
 import javax.script.Invocable;
@@ -10,6 +12,83 @@ import org.junit.Test;
 
 public class TestScriptCompiled {
 
+    @Test
+    public void test_scriptObj() {
+        try {
+            final ScriptEngine engine = createEngine();
+            final Invocable jsInvoke = (Invocable) engine;
+            final Compilable jsCompiler = (Compilable) engine;
+            
+            String script = ""
+                    + "TestCompiled1 = new ("
+                    + "function() {\n"
+                    + "  this.test = function(data) {\n"
+                    + "      print('data -> k1:' + data.k1 + ' k2:' + data.k2);\n"
+                    + "  };\n"
+                    + "  this.makeData = function() {\n"
+                    + "    return {"
+                    + "      k1: 'abcde', \n"
+                    + "      k2: '123', \n"
+                    + "    };\n"
+                    + "  }\n"
+                    + "}"
+                    + ");"
+                    ;
+
+            CompiledScript compiledScript = jsCompiler.compile(script);
+            Object jsObj = compiledScript.eval();
+            
+            Object jsData = jsInvoke.invokeMethod(jsObj, "makeData");
+            printMap((Map<String, Object>)jsData);
+            
+            jsInvoke.invokeMethod(jsObj, "test", jsData);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public static void printMap(Map<String, Object> map) {
+        for (String key : map.keySet()) {
+            System.out.println("map[" + key + "]: " + map.get(key));
+        } 
+    }
+    
+    public void test_tryBlock() {
+        try {
+            final ScriptEngine engine = createEngine();
+            final Invocable jsInvoke = (Invocable) engine;
+            final Compilable jsCompiler = (Compilable) engine;
+            
+            String script = ""
+                    + "TestCompiled1 = new ("
+                    + "function() {\n"
+                    + "  this.doJob = function(jobName) {\n"
+                    + "    try {\n"
+                    + "      return jobName.substring(0, 2);\n"
+                    + "    } catch (e) {\n"
+                    + "      print(' Error -> ' + e);\n"
+                    + "      return null;\n"
+                    + "    } finally { \n"
+                    + "      print('finally ----') \n"
+                    + "    } \n"
+                    + "  };\n"
+                    + "}"
+                    + ");"
+                    ;
+
+            CompiledScript compiledScript = jsCompiler.compile(script);
+            Object jsObj = compiledScript.eval();
+            
+            Object retVal = jsInvoke.invokeMethod(jsObj, "doJob", "test测试111 ---");
+            System.out.println("retVal:" + retVal);
+            
+            retVal = jsInvoke.invokeMethod(jsObj, "doJob");
+            System.out.println("retVal:" + retVal);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
     public void test_3() {
         try {
             final ScriptEngine engine = createEngine();
@@ -59,7 +138,6 @@ public class TestScriptCompiled {
         }
     }
 
-    @Test
     public void test_2() {
         try {
             final ScriptEngine engine = createEngine();

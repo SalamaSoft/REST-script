@@ -2,6 +2,7 @@ package com.salama.service.script.test.junittest;
 
 import java.util.Map;
 
+import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -11,6 +12,44 @@ import org.junit.Test;
 public class TestScriptTypes {
     
     @Test
+    public void test_ScriptObj() {
+        try {
+            final ScriptEngine engine = createEngine();
+            String script = ""
+                    + "var data = "
+                    + "{"
+                    + "  k1: 'abcde', \n"
+                    + "  k2: '123', \n"
+                    + "};\n"
+                    + "data;"
+                    ;
+            Object jsObj = engine.eval(script);
+            //convert to map
+            Map<String, Object> map = (Map<String, Object>) jsObj;
+            for (String key : map.keySet()) {
+                System.out.println("map[" + key + "]: " + map.get(key));
+            } 
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void test_JavaBean() {
+        try {
+            final ScriptEngine engine = createEngine();
+            String script = ""
+                    + "var TestData = Java.type('com.salama.service.script.test.junittest.TestData');\n"
+                    + "var data = new TestData();"
+                    + "data.k1 = 'abcde'; \n"
+                    + "data.k2 = '123'; \n"
+                    + ""
+                    ;
+            engine.eval(script);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
     public void test_staticMethod() {
         try {
             final ScriptEngine engine = createEngine();

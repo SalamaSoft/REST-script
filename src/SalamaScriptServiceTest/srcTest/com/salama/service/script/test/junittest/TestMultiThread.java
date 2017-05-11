@@ -4,6 +4,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.script.Compilable;
 import javax.script.CompiledScript;
@@ -16,6 +18,23 @@ import org.junit.Test;
 public class TestMultiThread {
 
     @Test
+    public void test_2() {
+        String regex = "[a-zA-Z0-9\\-_\\.]+";
+        Pattern pattern = Pattern.compile(regex);
+        
+        String input = "aaa.BB-xc_";
+        Matcher matcher = pattern.matcher(input);
+        boolean match = matcher.matches();
+        System.out.println(
+                "match[" + input + "] ->"
+                + " match:" + match 
+                + " hitEnd:" + matcher.hitEnd()
+                + " matchStart:" + matcher.start()
+                + " matchEnd:" + matcher.end()
+                + " input.len:" + input.length()
+                );
+    }
+    
     public void test_1() {
         try {
             final ScriptEngineManager engineManager = ScriptEngineUtil.createEngineManager();

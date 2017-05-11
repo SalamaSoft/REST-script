@@ -5,7 +5,7 @@ public class ScriptServletConfig {
     private String scriptEngineName = "nashorn";
     private ScriptContextSetting scriptSourceProviderSetting = new ScriptContextSetting();
 
-    private String scriptServletUriParserClassName = null;
+    private String serviceTargetFinder = null;
     
     public String getScriptEngineName() {
         return scriptEngineName;
@@ -23,13 +23,14 @@ public class ScriptServletConfig {
         this.scriptSourceProviderSetting = scriptSourceProviderSetting;
     }
 
-    public String getScriptServletUriParserClassName() {
-        return scriptServletUriParserClassName;
+    public String getServiceTargetFinder() {
+        return serviceTargetFinder;
     }
 
-    public void setScriptServletUriParserClassName(String scriptServletUriParserClassName) {
-        this.scriptServletUriParserClassName = scriptServletUriParserClassName;
+    public void setServiceTargetFinder(String serviceTargetFinder) {
+        this.serviceTargetFinder = serviceTargetFinder;
     }
+
     
     
 }
