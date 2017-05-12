@@ -11,7 +11,6 @@ import org.junit.Test;
 
 public class TestScriptTypes {
     
-    @Test
     public void test_ScriptObj() {
         try {
             final ScriptEngine engine = createEngine();
@@ -21,6 +20,7 @@ public class TestScriptTypes {
                     + "  k1: 'abcde', \n"
                     + "  k2: '123', \n"
                     + "};\n"
+                    + "print('typeof data:' + (typeof data));\n"
                     + "data;"
                     ;
             Object jsObj = engine.eval(script);
@@ -34,6 +34,7 @@ public class TestScriptTypes {
         }
     }
     
+    @Test
     public void test_JavaBean() {
         try {
             final ScriptEngine engine = createEngine();
@@ -42,7 +43,8 @@ public class TestScriptTypes {
                     + "var data = new TestData();"
                     + "data.k1 = 'abcde'; \n"
                     + "data.k2 = '123'; \n"
-                    + ""
+                    + "print('typeof data:' + (typeof data));\n"
+                    + "print('data[k1]:' + data['k1']);\n"
                     ;
             engine.eval(script);
         } catch (Throwable e) {

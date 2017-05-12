@@ -12,11 +12,21 @@ import javax.script.ScriptEngineManager;
 import org.junit.Test;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.salama.service.script.test.junittest.ScriptEngineUtil;
 
 public class TestJsonAndXml {
 
+    private final static String SCRIPT_JSONParser = ""
+            + "  print('init $json ---');"
+            + "  $json = {\n"
+            + "    _inner: Java.type('com.alibaba.fastjson.JSON'),"
+            + "    parse: function(jsonStr) {\n"
+            + "      return this._inner.parseObject(jsonStr);"
+            + "    },\n"
+            + "    stringfy: function(obj) {\n"
+            + "      return this._inner.toJSONString(obj);"
+            + "    },\n"
+            + "  };\n"
+            ;
     public void testXml_1() {
         
     }
@@ -33,27 +43,41 @@ public class TestJsonAndXml {
                     + "function() {\n"
                     + "  this.test = function(data) {\n"
                     + "      print("
-                    + "        'test() data -> k1:' + data.k1 + ' k2:' + data.k2"
+                    + "        'test() data ->'"
+                    + "        + ' k1:' + data.k1 "
+                    + "        + ' k2:' + data.k2"
                     + "        + ' data.k3.s1:' + data.k3.s1 "
                     + "        + ' data.k3.s2:' + data.k3.s2 "
                     + "        + ' data.k3.s3:' + data.k3.s3 "
                     + "      );\n"
                     + "  };\n"
+                    + "  this.testJson = function(data) {\n"
+                    + "      var jsonStr = $json.stringfy(data);\n"
+                    + "      var data2 = $json.parse(jsonStr);\n"
+                    + "      var jsonStr2 = $json.stringfy(data2);\n"
+                    + "      print('jsonStr  -> ' + jsonStr);"
+                    + "      print('jsonStr2 -> ' + jsonStr2);"
+                    + "  };\n"
                     + "  this.makeData = function() {\n"
-                    + "    return {"
+                    + "    var data = {"
                     + "      k1: 'abcde', \n"
                     + "      k2: '123', \n"
                     + "      k3: {"
                     + "        s1: 'bbbb',"
                     + "        s2: 333.4,"
                     + "        s3: ['ar0', 'ar1', 'ar2', ]"
-                    + "      },\n"
+                    + "      }, \n"
                     + "    };\n"
+                    + "    print('typeof data:' + (typeof data));\n"
+                    + "    return data;\n"
                     + "  }\n"
                     + "}"
                     + ");"
                     ;
 
+            //Object json = engine.eval("JSON;");
+            engine.eval(SCRIPT_JSONParser);
+            
             CompiledScript compiledScript = jsCompiler.compile(script);
             Object jsObj = compiledScript.eval();
             
@@ -61,6 +85,9 @@ public class TestJsonAndXml {
             testJson(jsData, Map.class);
             
             jsInvoke.invokeMethod(jsObj, "test", jsData);
+
+            jsInvoke.invokeMethod(jsObj, "testJson", jsData);
+            jsInvoke.invokeMethod(jsObj, "testJson", makeTestData3());
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -83,11 +110,11 @@ public class TestJsonAndXml {
     }
     
     private static void testJson(Object obj, Class<?> cls) {
-        String jsonStr = JSON.toJSONString(obj, true);
-        System.out.println("json.tostr -> \n" + jsonStr);
+        String jsonStr = JSON.toJSONString(obj);
+        System.out.println("json.tostr -> " + jsonStr);
 
         Object obj2 = JSON.parseObject(jsonStr, cls);
-        System.out.println("json.parse -> " + obj2);
+        System.out.println("json.parse -> " + obj2); 
     }
     
     private static Map<String, Object> makeComplexMap() {
