@@ -3,10 +3,17 @@ package com.salama.service.script.junittest;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.script.Compilable;
+import javax.script.CompiledScript;
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+
 import org.junit.Test;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.salama.service.script.test.junittest.ScriptEngineUtil;
 
 public class TestJsonAndXml {
 
@@ -15,6 +22,50 @@ public class TestJsonAndXml {
     }
     
     @Test
+    public void testJson_4() {
+        try {
+            final ScriptEngine engine = createEngine();
+            final Invocable jsInvoke = (Invocable) engine;
+            final Compilable jsCompiler = (Compilable) engine;
+            
+            String script = ""
+                    + "TestCompiled1 = new ("
+                    + "function() {\n"
+                    + "  this.test = function(data) {\n"
+                    + "      print("
+                    + "        'test() data -> k1:' + data.k1 + ' k2:' + data.k2"
+                    + "        + ' data.k3.s1:' + data.k3.s1 "
+                    + "        + ' data.k3.s2:' + data.k3.s2 "
+                    + "        + ' data.k3.s3:' + data.k3.s3 "
+                    + "      );\n"
+                    + "  };\n"
+                    + "  this.makeData = function() {\n"
+                    + "    return {"
+                    + "      k1: 'abcde', \n"
+                    + "      k2: '123', \n"
+                    + "      k3: {"
+                    + "        s1: 'bbbb',"
+                    + "        s2: 333.4,"
+                    + "        s3: ['ar0', 'ar1', 'ar2', ]"
+                    + "      },\n"
+                    + "    };\n"
+                    + "  }\n"
+                    + "}"
+                    + ");"
+                    ;
+
+            CompiledScript compiledScript = jsCompiler.compile(script);
+            Object jsObj = compiledScript.eval();
+            
+            Map<String, Object> jsData = (Map<String, Object>) jsInvoke.invokeMethod(jsObj, "makeData");
+            testJson(jsData, Map.class);
+            
+            jsInvoke.invokeMethod(jsObj, "test", jsData);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
     public void testJson_3() {
         testJson(makeTestData3());
     }
@@ -28,11 +79,15 @@ public class TestJsonAndXml {
     }
     
     private static void testJson(Object obj) {
+        testJson(obj, obj.getClass());
+    }
+    
+    private static void testJson(Object obj, Class<?> cls) {
         String jsonStr = JSON.toJSONString(obj, true);
         System.out.println("json.tostr -> \n" + jsonStr);
 
-        Object obj2 = JSON.parseObject(jsonStr, obj.getClass());
-        System.out.println("json.parse -> \n" + obj2);
+        Object obj2 = JSON.parseObject(jsonStr, cls);
+        System.out.println("json.parse -> " + obj2);
     }
     
     private static Map<String, Object> makeComplexMap() {
@@ -165,6 +220,11 @@ public class TestJsonAndXml {
             _k2 = k2;
         }
         
-        
     }
+    
+    private static ScriptEngine createEngine() {
+        final ScriptEngineManager engineManager = new ScriptEngineManager();
+        return engineManager.getEngineByName("nashorn");
+    }
+    
 }
