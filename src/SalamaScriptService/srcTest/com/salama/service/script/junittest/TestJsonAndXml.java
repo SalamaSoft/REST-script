@@ -16,7 +16,10 @@ import org.junit.Test;
 
 import com.alibaba.fastjson.JSON;
 
+import MetoXML.XmlDeserializer;
 import MetoXML.XmlSerializer;
+import MetoXML.Base.XmlParseException;
+import MetoXML.Util.ClassFinder;
 
 public class TestJsonAndXml {
 
@@ -32,7 +35,7 @@ public class TestJsonAndXml {
             + "    },\n"
             + "  };\n"
             ;
-    
+        
     
     public void testXml_2() {
         try {
@@ -100,7 +103,21 @@ public class TestJsonAndXml {
     public void testXml_1() {
         try {
             TestData3 data = makeTestData3();
+            testXml(data);
             testXml(data, data.getClass());
+            testXml(data, data.getClass(), new ClassFinder() {
+                
+                @Override
+                public Class<?> findClass(String className) throws ClassNotFoundException {
+                    if(className.equals(TestData2.class.getSimpleName())) {
+                        return TestData2.class;
+                    } if(className.equals(TestData1.class.getSimpleName())) {
+                        return TestData1.class;
+                    } else {
+                        return null;
+                    }
+                }
+            });
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -192,16 +209,23 @@ public class TestJsonAndXml {
         System.out.println("json.parse -> " + obj2); 
     }
     
-    public static void testXml(Object obj) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException {
-        testXml(obj, obj.getClass());
+    public static void testXml(Object obj) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException, InstantiationException, NoSuchMethodException, XmlParseException {
+        testXml(obj, obj.getClass(), null);
     }
     
-    public static void testXml(Object obj, Class<?> cls) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException {
-        String jsonStr = XmlSerializer.objectToString(obj, cls);
-        System.out.println("xml.tostr -> " + jsonStr);
+    public static void testXml(Object obj, Class<?> cls) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException, InstantiationException, NoSuchMethodException, XmlParseException {
+        testXml(obj, cls, null);
+    }
+    
+    public static void testXml(Object obj, Class<?> cls, ClassFinder classFinder) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException, InstantiationException, NoSuchMethodException, XmlParseException {
+        String xmlStr = XmlSerializer.objectToString(obj, cls);
+        System.out.println("xml.tostr -> " + xmlStr);
 
-//        Object obj2 = JSON.parseObject(jsonStr, cls);
-//        System.out.println("xml.parse -> " + obj2); 
+        Object obj2 = XmlDeserializer.stringToObject(xmlStr, cls, classFinder);
+        System.out.println("xml.parse -> " + obj2);
+        
+        String xmlStr2 = XmlSerializer.objectToString(obj2, cls);
+        System.out.println("xml.tostr -> " + xmlStr2);
     }
     
     
