@@ -11,6 +11,8 @@ import org.junit.Test;
 
 public class TestScriptTypes {
     
+
+    @Test
     public void test_ScriptObj() {
         try {
             final ScriptEngine engine = createEngine();
@@ -34,7 +36,6 @@ public class TestScriptTypes {
         }
     }
     
-    @Test
     public void test_JavaBean() {
         try {
             final ScriptEngine engine = createEngine();

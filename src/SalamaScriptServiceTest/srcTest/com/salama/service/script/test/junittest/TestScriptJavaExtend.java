@@ -11,6 +11,18 @@ import org.junit.Test;
 public class TestScriptJavaExtend {
 
     @Test
+    public void test_Java() {
+        try {
+            final ScriptEngine engine = createEngine();
+            final Invocable jsInvoke = (Invocable) engine;
+            
+            Object java = engine.eval("Java");
+            printClassInfo(java.getClass());
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }        
+    }
+    
     public void test_2() {
         try {
             final ScriptEngine engine = createEngine();
