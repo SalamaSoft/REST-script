@@ -1,12 +1,16 @@
 package com.salama.service.script;
 
+import java.io.File;
+
 import javax.servlet.ServletContext;
 
 import org.apache.log4j.Logger;
 
 import com.salama.service.core.context.CommonContext;
-import com.salama.service.script.config.ScriptContextSetting;
+import com.salama.service.script.config.ScriptProviderSetting;
 import com.salama.service.script.config.ScriptServiceContextConfig;
+import com.salama.service.script.config.ScriptServiceDispatcherConfig;
+import com.salama.service.script.config.ServletUploadSetting;
 import com.salama.service.script.core.IScriptServiceDispatcher;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IServiceTargetFinder;
@@ -57,8 +61,12 @@ public class ScriptServiceContext implements CommonContext {
                         
                         @Override
                         public Class<?> findClass(String className) throws ClassNotFoundException {
-                            if(className.equalsIgnoreCase(ScriptContextSetting.class.getSimpleName())) {
-                                return ScriptContextSetting.class;
+                            if(className.equalsIgnoreCase(ScriptProviderSetting.class.getSimpleName())) {
+                                return ScriptProviderSetting.class;
+                            } if(className.equalsIgnoreCase(ScriptServiceDispatcherConfig.class.getSimpleName())) {
+                                return ScriptServiceDispatcherConfig.class;
+                            } if(className.equalsIgnoreCase(ServletUploadSetting.class.getSimpleName())) {
+                                return ServletUploadSetting.class;
                             } else {
                                 return null;
                             }
@@ -76,8 +84,9 @@ public class ScriptServiceContext implements CommonContext {
                             );
             _scriptSourceProvider = typeScriptSourceProvider.newInstance();
             _scriptSourceProvider.reload(
-                    servletContext, 
-                    _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getConfigLocation()
+                    new File(servletContext.getRealPath(
+                            _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getConfigLocation()
+                            ))
                     );
             logger.info(
                     "reload()"

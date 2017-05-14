@@ -6,7 +6,7 @@ public class ScriptServiceDispatcherConfig implements Serializable {
     private static final long serialVersionUID = 4895612496118184116L;
     
     private String scriptEngineName = "nashorn";
-    private ScriptContextSetting scriptSourceProviderSetting = new ScriptContextSetting();
+    private ScriptProviderSetting scriptSourceProviderSetting = new ScriptProviderSetting();
     private String serviceTargetFinder = null;
     
     public String getScriptEngineName() {
@@ -17,11 +17,11 @@ public class ScriptServiceDispatcherConfig implements Serializable {
         this.scriptEngineName = scriptEngineName;
     }
 
-    public ScriptContextSetting getScriptSourceProviderSetting() {
+    public ScriptProviderSetting getScriptSourceProviderSetting() {
         return scriptSourceProviderSetting;
     }
 
-    public void setScriptSourceProviderSetting(ScriptContextSetting scriptSourceProviderSetting) {
+    public void setScriptSourceProviderSetting(ScriptProviderSetting scriptSourceProviderSetting) {
         this.scriptSourceProviderSetting = scriptSourceProviderSetting;
     }
 
