@@ -3,7 +3,11 @@ package com.salama.service.script.sourceprovider;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import javax.script.Invocable;
+
+import com.salama.service.script.core.IScriptContext;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IScriptSourceWatcher;
 

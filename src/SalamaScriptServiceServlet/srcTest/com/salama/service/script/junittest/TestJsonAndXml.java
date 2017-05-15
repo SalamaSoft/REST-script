@@ -103,7 +103,10 @@ public class TestJsonAndXml {
                         ;
                 
                 Object jsXmlParser = engine.eval(SCRIPT_XmlParser);
-                System.out.println("[test] exists:" + ((Map<String, Object>)jsXmlParser).containsKey("test"));
+                System.out.println(""
+                        + " type:" + jsXmlParser.getClass().getName()
+                        + " [test] exists:" + ((Map<String, Object>)jsXmlParser).containsKey("test")
+                        );
                 engineManager.put("$xml", jsXmlParser);
 
                 CompiledScript compiledScript = jsCompiler.compile(script);

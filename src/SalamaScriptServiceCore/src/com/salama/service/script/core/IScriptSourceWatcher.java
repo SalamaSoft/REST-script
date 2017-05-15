@@ -7,32 +7,39 @@ import javax.script.ScriptException;
 public interface IScriptSourceWatcher {
 
     /**
-     * This method is invoked when global variable updated.
-     * Global variable will be added into ScriptEngineManager and then it can be invoked in all script.
-     * @param varName name of variable
-     * @param obj instance of obj
+     * If app is not null, the obj will be put into ScriptEngine of the app.
+     * Otherwise, the obj will be put into ScriptEngineManager as global variable.
+     * @param Optional. app
+     * @param Required. varName
+     * @param obj Required. instance of Java object
+     * @param config Optional. argument of config when the obj contains method 'reload(String config)' 
      */
-    void onGlobalVarUpdated(String varName, Object obj);
+    void onJavaObjUpdated(String app, String varName, Object obj, String config);
     
     /**
-     * This method is invoked when global variable deleted.
-     * @param varName
+     * If app is not null, deleting operation is on ScriptEngine of the app.
+     * Otherwise, deleting operation is on ScriptEngineManager.
+     * @param Optional. app
+     * @param Required. varName
      */
-    void onGlobalVarDeleted(String varName);
+    void onJavaObjDeleted(String app, String varName);
     
     /**
      * This method is invoked when source of script updated.
-     * (app, name) should be unique 
-     * @param app ScriptEngines will be isolated between applications. 
-     * @param name Be unique in one app. 
-     * @param script source of script. It should return one object which implements methods of IScriptService.
+     * If app is not null, the value returned by eval(script) will be put into ScriptEngine of the app.
+     * Otherwise, the script object will be put into ScriptEngineManager as global variable with the key of IScriptService.serviceName().
+     * @param Optional. app  
+     * @param Required. script source of script. It should return one object which implements methods of IScriptService.
+     * @param config Optional. argument of config when the obj contains method 'reload(String config)' 
      * 
      * @return name of the script
      */
-    String onScriptSourceUpdated(String app, Reader script) throws ScriptException;
+    String onScriptSourceUpdated(String app, Reader script, String config) throws ScriptException;
     
     /**
      * This method is invoked when source of script deleted.
+     * If app is not null, deleting operation is on ScriptEngine of the app.
+     * Otherwise, deleting operation is on ScriptEngineManager.
      * @param app
      * @param name
      */

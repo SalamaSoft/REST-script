@@ -1,6 +1,8 @@
 package com.salama.service.script.core;
 
 public interface IScriptService {
+    public final static String MethodName_serviceName = "serviceName";
+    public final static String MethodName_version = "version";
 
     /**
      * 
