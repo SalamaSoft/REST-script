@@ -1,6 +1,7 @@
 package com.salama.service.script;
 
 import java.io.File;
+import java.io.FileReader;
 
 import javax.servlet.ServletContext;
 
@@ -78,60 +79,72 @@ public class ScriptServiceContext implements CommonContext {
             }
             
             //ScriptSourceProvider -------------------------------
-            Class<? extends IScriptSourceProvider> typeScriptSourceProvider = 
-                    (Class<? extends IScriptSourceProvider>) getDefaultClassLoader().loadClass(
-                            _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getClassName()
-                            );
-            _scriptSourceProvider = typeScriptSourceProvider.newInstance();
-            _scriptSourceProvider.reload(
-                    new File(servletContext.getRealPath(
-                            _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getConfigLocation()
-                            ))
-                    );
-            logger.info(
-                    "reload()"
-                    + " ScriptSourceProvider loaded -> " + _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getClassName()
-                    + " configLocation:" + _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getConfigLocation()
-                    );
-            
-            //IServiceTargetFinder -------------------------------
-            IServiceTargetFinder _serviceTargetFinder;
-            String serviceTargetFinderClass = _config.getServiceDispatcherConfig().getServiceTargetFinder();
-            if(serviceTargetFinderClass != null && serviceTargetFinderClass.trim().length() > 0) {
-                Class<? extends IServiceTargetFinder> cls = 
-                        (Class<? extends IServiceTargetFinder>) getDefaultClassLoader().loadClass(
-                                serviceTargetFinderClass
+            {
+                Class<? extends IScriptSourceProvider> typeScriptSourceProvider = 
+                        (Class<? extends IScriptSourceProvider>) getDefaultClassLoader().loadClass(
+                                _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getClassName()
                                 );
-                _serviceTargetFinder = cls.newInstance();
-            } else {
-                _serviceTargetFinder = new DefaultServiceTargetFinder();
+                _scriptSourceProvider = typeScriptSourceProvider.newInstance();
+               
+                FileReader reader = new FileReader(
+                        new File(servletContext.getRealPath(
+                                _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getConfigLocation()
+                                ))
+                        );
+                try {
+                    _scriptSourceProvider.reload(reader);
+                } finally {
+                    reader.close();
+                }
+                logger.info(
+                        "reload()"
+                        + " ScriptSourceProvider loaded -> " + _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getClassName()
+                        + " configLocation:" + _config.getServiceDispatcherConfig().getScriptSourceProviderSetting().getConfigLocation()
+                        );
             }
-            logger.info(
-                    "reload()"
-                    + " _serviceTargetFinder inited -> " + _serviceTargetFinder.getClass().getName()
-                    );
             
             //ScriptServiceDispatcher -------------------------------
-            _scriptServiceDispatcher = new ScriptServiceDispatcher(
-                    _config.getServiceDispatcherConfig().getScriptEngineName(), 
-                    _scriptSourceProvider,
-                    _serviceTargetFinder
-                    );
-            logger.info(
-                    "reload()"
-                    + " _scriptServiceDispatcher inited -> engineName: " + _config.getServiceDispatcherConfig().getScriptEngineName()
-                    );
-            
+            {
+                //IServiceTargetFinder 
+                IServiceTargetFinder _serviceTargetFinder;
+                String serviceTargetFinderClass = _config.getServiceDispatcherConfig().getServiceTargetFinder();
+                if(serviceTargetFinderClass != null && serviceTargetFinderClass.trim().length() > 0) {
+                    Class<? extends IServiceTargetFinder> cls = 
+                            (Class<? extends IServiceTargetFinder>) getDefaultClassLoader().loadClass(
+                                    serviceTargetFinderClass
+                                    );
+                    _serviceTargetFinder = cls.newInstance();
+                } else {
+                    _serviceTargetFinder = new DefaultServiceTargetFinder();
+                }
+                logger.info(
+                        "reload()"
+                        + " _serviceTargetFinder inited -> " + _serviceTargetFinder.getClass().getName()
+                        );
+                
+                //ScriptServiceDispatcher
+                _scriptServiceDispatcher = new ScriptServiceDispatcher(
+                        _config.getServiceDispatcherConfig().getScriptEngineName(), 
+                        _scriptSourceProvider,
+                        _serviceTargetFinder
+                        );
+                logger.info(
+                        "reload()"
+                        + " _scriptServiceDispatcher inited -> engineName: " + _config.getServiceDispatcherConfig().getScriptEngineName()
+                        );
+            }
              
             //Init FileUploadSupport -------------------------------
-            _fileUploadSupport = new FileUploadSupport(servletContext, 
-                    _config.getEncoding(), 
-                    _config.getServletUploadSetting().getFileSizeMax(), 
-                    _config.getServletUploadSetting().getSizeMax(), 
-                    _config.getServletUploadSetting().getSizeThreshold(), 
-                    _config.getServletUploadSetting().getTempDirPath()
-                    );
-            logger.info("_fileUploadSupport.tempDirPath:" + _fileUploadSupport.getTempDirPath());
+            {
+                _fileUploadSupport = new FileUploadSupport(servletContext, 
+                        _config.getEncoding(), 
+                        _config.getServletUploadSetting().getFileSizeMax(), 
+                        _config.getServletUploadSetting().getSizeMax(), 
+                        _config.getServletUploadSetting().getSizeThreshold(), 
+                        _config.getServletUploadSetting().getTempDirPath()
+                        );
+                logger.info("_fileUploadSupport.tempDirPath:" + _fileUploadSupport.getTempDirPath());
+            }
             
             logger.info("reload() finished -----");
         } catch (Throwable e) {

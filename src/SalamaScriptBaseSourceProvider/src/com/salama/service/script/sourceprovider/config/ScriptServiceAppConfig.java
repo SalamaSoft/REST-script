@@ -7,5 +7,6 @@ public class ScriptServiceAppConfig implements Serializable {
     private String appId = "";
     
     private AppAuthManagerSetting appAuthUserDataManagerSetting = null;
-    
+ 
+    private 
 }

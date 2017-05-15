@@ -47,66 +47,90 @@ public class TestJsonAndXml {
             + "    stringfy: function(obj) {\n"
             + "      return this._innerTypeSer.objectToString(obj);\n"
             + "    },\n"
+            + "    test: function() {\n"
+            + "      var old = this.flag;\n"
+            + "      this.flag = !this.flag;\n"
+            + "      print('test flag changed:' + old + ' --> ' + this.flag);"
+            + "    },"
+            + "    flag: false,"
             + "  };\n"
             ;
     
     @Test
     public void testXml_2() {
         try {
-            final ScriptEngine engine = createEngine();
-            final Invocable jsInvoke = (Invocable) engine;
-            final Compilable jsCompiler = (Compilable) engine;
-            
-            String script = ""
-                    + "TestCompiled1 = new ("
-                    + "function() {\n"
-                    + "  this.test = function(data) {\n"
-                    + "      print("
-                    + "        'test() data ->'"
-                    + "        + ' k1:' + data.k1 "
-                    + "        + ' k2:' + data.k2"
-                    + "        + ' data.k3.s1:' + data.k3.s1 "
-                    + "        + ' data.k3.s2:' + data.k3.s2 "
-                    + "        + ' data.k3.s3:' + data.k3.s3 "
-                    + "      );\n"
-                    + "  };\n"
-                    + "  this.testXml = function(data) {\n"
-                    + "      var str = $xml.stringfy(data);\n"
-                    + "      print('testXml str  -> ' + str);"
-                    + "      var data2 = $xml.parse(str);\n"
-                    + "      var str2 = $xml.stringfy(data2);\n"
-                    + "      print('testXml str2 -> ' + str2);"
-                    + "  };\n"
-                    + "  this.makeData = function() {\n"
-                    + "    var data = {"
-                    + "      k1: 'abcde', \n"
-                    + "      k2: '123', \n"
-                    + "      k3: {"
-                    + "        s1: 'bbbb',"
-                    + "        s2: 333.4,"
-                    + "        s3: ['ar0', 'ar1', 'ar2', ]"
-                    + "      }, \n"
-                    + "    };\n"
-                    + "    print('typeof data:' + (typeof data));\n"
-                    + "    return data;\n"
-                    + "  }\n"
-                    + "}"
-                    + ");"
-                    ;
+            final ScriptEngineManager engineManager = new ScriptEngineManager();
+            {
+                final ScriptEngine engine = engineManager.getEngineByName("nashorn");
+                final Invocable jsInvoke = (Invocable) engine;
+                final Compilable jsCompiler = (Compilable) engine;
+                
+                String script = ""
+                        + "TestCompiled1 = new ("
+                        + "function() {\n"
+                        + "  this.test = function(data) {\n"
+                        + "      print("
+                        + "        'test() data ->'"
+                        + "        + ' k1:' + data.k1 "
+                        + "        + ' k2:' + data.k2"
+                        + "        + ' data.k3.s1:' + data.k3.s1 "
+                        + "        + ' data.k3.s2:' + data.k3.s2 "
+                        + "        + ' data.k3.s3:' + data.k3.s3 "
+                        + "      );\n"
+                        + "  };\n"
+                        + "  this.testXml = function(data) {\n"
+                        + "      var str = $xml.stringfy(data);\n"
+                        + "      print('testXml str  -> ' + str);"
+                        + "      var data2 = $xml.parse(str);\n"
+                        + "      var str2 = $xml.stringfy(data2);\n"
+                        + "      print('testXml str2 -> ' + str2);"
+                        + "  };\n"
+                        + "  this.makeData = function() {\n"
+                        + "    var data = {"
+                        + "      k1: 'abcde', \n"
+                        + "      k2: '123', \n"
+                        + "      k3: {"
+                        + "        s1: 'bbbb',"
+                        + "        s2: 333.4,"
+                        + "        s3: ['ar0', 'ar1', 'ar2', ]"
+                        + "      }, \n"
+                        + "    };\n"
+                        + "    print('typeof data:' + (typeof data));\n"
+                        + "    return data;\n"
+                        + "  }\n"
+                        + "}"
+                        + ");"
+                        ;
+                
+                Object jsXmlParser = engine.eval(SCRIPT_XmlParser);
+                System.out.println("[test] exists:" + ((Map<String, Object>)jsXmlParser).containsKey("test"));
+                engineManager.put("$xml", jsXmlParser);
 
-            engine.eval(SCRIPT_XmlParser);
+                CompiledScript compiledScript = jsCompiler.compile(script);
+                Object jsObj = compiledScript.eval();
+                
+                Map<String, Object> jsData = (Map<String, Object>) jsInvoke.invokeMethod(jsObj, "makeData");
+                testXml(jsData, Map.class);
+                
+                System.out.println("testXml 1 -----------------");
+                jsInvoke.invokeMethod(jsObj, "testXml", jsData);
+                System.out.println("testXml 2 -----------------");
+                jsInvoke.invokeMethod(jsObj, "testXml", makeTestData3());
+                
+                //test global variable
+                engine.eval("$xml.test();");
+            }
+                      
+            //test global variable
+            {
+                final ScriptEngine engine = engineManager.getEngineByName("nashorn");
+                engine.eval("$xml.test();");
+            }
             
-            CompiledScript compiledScript = jsCompiler.compile(script);
-            Object jsObj = compiledScript.eval();
-            
-            Map<String, Object> jsData = (Map<String, Object>) jsInvoke.invokeMethod(jsObj, "makeData");
-            testXml(jsData, Map.class);
-
-            System.out.println("testXml 1 -----------------");
-            jsInvoke.invokeMethod(jsObj, "testXml", jsData);
-            System.out.println("testXml 2 -----------------");
-            jsInvoke.invokeMethod(jsObj, "testXml", makeTestData3());
-                        
+            {
+                final ScriptEngine engine = engineManager.getEngineByName("nashorn");
+                engine.eval("$xml.test();");
+            }
         } catch (Throwable e) {
             e.printStackTrace();
         }
