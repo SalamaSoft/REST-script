@@ -1,6 +1,7 @@
 package com.salama.service.script.test.junittest;
 
 import java.io.File;
+import java.util.Map.Entry;
 
 import javax.script.Bindings;
 import javax.script.CompiledScript;
@@ -17,6 +18,7 @@ public class TestScriptGlobalVar {
             final ScriptEngineManager engineManager = ScriptEngineUtil.createEngineManager();
             //global vars
             engineManager.put("$TestUtil", new TestUtil());
+
             /* This will cause error
             {
                 String script = ""
@@ -30,6 +32,9 @@ public class TestScriptGlobalVar {
             }
             */
             
+            for(Entry<String, Object> binding : engineManager.getBindings().entrySet()) {
+                System.out.println("binding[" + binding.getKey() + "]" + binding.getValue());
+            }
 
             {
                 String script = ""

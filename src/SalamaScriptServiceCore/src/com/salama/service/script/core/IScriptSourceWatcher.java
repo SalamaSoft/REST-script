@@ -14,7 +14,7 @@ public interface IScriptSourceWatcher {
      * @param obj Required. instance of Java object
      * @param config Optional. argument of config when the obj contains method 'reload(String config)' 
      */
-    void onJavaObjUpdated(String app, String varName, Object obj, String config);
+    void onJavaObjUpdated(String app, String varName, Object obj, Reader config);
     
     /**
      * If app is not null, deleting operation is on ScriptEngine of the app.
@@ -34,7 +34,7 @@ public interface IScriptSourceWatcher {
      * 
      * @return name of the script
      */
-    String onScriptSourceUpdated(String app, Reader script, String config) throws ScriptException;
+    String onScriptSourceUpdated(String app, Reader script, Reader config) throws ScriptException;
     
     /**
      * This method is invoked when source of script deleted.

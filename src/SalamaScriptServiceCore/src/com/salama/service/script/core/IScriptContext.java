@@ -1,11 +1,11 @@
 package com.salama.service.script.core;
 
-public interface IScriptContext {
-    
-    public final static String MethodName_reload = "reload";
-    public final static String MethodName_destroy = "destroy";
+import java.io.IOException;
+import java.io.Reader;
 
-    void reload(String config);
+public interface IScriptContext extends IScriptService {
+    
+    void reload(Reader config, IConfigLocationResolver configLocationResolver) throws IOException;
     
     void destroy();
 

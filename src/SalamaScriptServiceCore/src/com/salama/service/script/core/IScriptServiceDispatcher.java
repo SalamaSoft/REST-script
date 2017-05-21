@@ -6,7 +6,7 @@ import javax.script.ScriptException;
 import com.salama.service.core.net.RequestWrapper;
 import com.salama.service.core.net.ResponseWrapper;
 
-public interface IScriptServiceDispatcher {
+public interface IScriptServiceDispatcher extends IScriptContext {
 
     IScriptSourceWatcher getScriptSourceWatcher();
     
@@ -14,6 +14,6 @@ public interface IScriptServiceDispatcher {
     
     Object dispatch(RequestWrapper request, ResponseWrapper response) throws ScriptException, NoSuchMethodException;
     
-    CompiledScript getCompiledScript(ServiceTarget target);
+    CompiledScript findCompiledScript(ServiceTarget target);
     
 }

@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.log4j.Logger;
 
+import com.salama.service.core.auth.MethodAccessNoAuthorityException;
 import com.salama.service.core.context.ServiceContext;
 import com.salama.service.core.net.RequestWrapper;
 import com.salama.service.core.net.ResponseWrapper;
@@ -25,6 +26,9 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     private static final long serialVersionUID = -1759081420866762147L;
     
     private final static Logger logger = Logger.getLogger(ScriptServiceServlet.class);
+    
+    private static final String ReturnValue_Xml_MethodAccessNoAuthority = 
+            "<Error><type>MethodAccessNoAuthorityException</type></Error>";
     
     /**
      * "xml" | "json" | "xml.jsonp=$varName" | "json.jsonp=$varName"
@@ -159,8 +163,12 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
                 return ResponseConverter.convertResponse(responseType, retVal, _encoding);
             }
         } catch (Throwable e) {
-            logger.error(null, e);
-            return null;
+            if(e.getClass() == MethodAccessNoAuthorityException.class) {
+                return ReturnValue_Xml_MethodAccessNoAuthority;
+            } else {
+                logger.error(null, e);
+                return null;
+            }
         }
         
     }

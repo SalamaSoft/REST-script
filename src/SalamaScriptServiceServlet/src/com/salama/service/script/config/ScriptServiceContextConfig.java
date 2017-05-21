@@ -2,6 +2,8 @@ package com.salama.service.script.config;
 
 import java.io.Serializable;
 
+import com.salama.service.script.dispatcher.ScriptServiceDispatcherConfig;
+
 public class ScriptServiceContextConfig implements Serializable {
 
     private static final long serialVersionUID = -9188805099606762839L;

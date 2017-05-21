@@ -22,7 +22,7 @@ public class DefaultServiceTargetFinder implements IServiceTargetFinder {
     public DefaultServiceTargetFinder() {
         logger.info(
                 "ServiceTargetFinder ->"
-                + " uri format: " + "/*/*/$app/$serviceName.$serviceMethod"
+                + " uri format: " + "/*/.../*/$app/$serviceName.$serviceMethod"
                 + " app pattern: " + REGEX_APP
                 + " serviceName pattern: " + REGEX_SERVICE_NAME
                 );

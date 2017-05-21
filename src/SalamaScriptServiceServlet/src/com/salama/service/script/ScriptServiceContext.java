@@ -2,19 +2,22 @@ package com.salama.service.script;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.Reader;
 
 import javax.servlet.ServletContext;
 
 import org.apache.log4j.Logger;
 
 import com.salama.service.core.context.CommonContext;
-import com.salama.service.script.config.ScriptProviderSetting;
+import com.salama.service.script.config.ScriptContextSetting;
 import com.salama.service.script.config.ScriptServiceContextConfig;
-import com.salama.service.script.config.ScriptServiceDispatcherConfig;
 import com.salama.service.script.config.ServletUploadSetting;
 import com.salama.service.script.core.IScriptServiceDispatcher;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IServiceTargetFinder;
+import com.salama.service.script.dispatcher.DefaultServiceTargetFinder;
+import com.salama.service.script.dispatcher.ScriptServiceDispatcher;
+import com.salama.service.script.dispatcher.ScriptServiceDispatcherConfig;
 import com.salama.util.http.upload.FileUploadSupport;
 
 import MetoXML.XmlDeserializer;
@@ -50,7 +53,6 @@ public class ScriptServiceContext implements CommonContext {
     public void reload(ServletContext servletContext, String configLocation) {
         logger.info("reload() configLocation:" + configLocation);
         String configFilePath = servletContext.getRealPath(configLocation);
-
         
         try {
             XmlDeserializer xmlDes = new XmlDeserializer();
@@ -62,8 +64,8 @@ public class ScriptServiceContext implements CommonContext {
                         
                         @Override
                         public Class<?> findClass(String className) throws ClassNotFoundException {
-                            if(className.equalsIgnoreCase(ScriptProviderSetting.class.getSimpleName())) {
-                                return ScriptProviderSetting.class;
+                            if(className.equalsIgnoreCase(ScriptContextSetting.class.getSimpleName())) {
+                                return ScriptContextSetting.class;
                             } if(className.equalsIgnoreCase(ScriptServiceDispatcherConfig.class.getSimpleName())) {
                                 return ScriptServiceDispatcherConfig.class;
                             } if(className.equalsIgnoreCase(ServletUploadSetting.class.getSimpleName())) {
@@ -158,19 +160,5 @@ public class ScriptServiceContext implements CommonContext {
         _scriptSourceProvider.destroy();
     }
 
-    public static ClassLoader getDefaultClassLoader() {
-        ClassLoader classLoader = null;
-
-        try {
-            classLoader = Thread.currentThread().getContextClassLoader();
-        } catch (Throwable e) {
-        }
-        
-        if (classLoader == null) {
-            classLoader = ScriptServiceContext.class.getClassLoader();
-        }
-        
-        return classLoader;
-    }
     
 }

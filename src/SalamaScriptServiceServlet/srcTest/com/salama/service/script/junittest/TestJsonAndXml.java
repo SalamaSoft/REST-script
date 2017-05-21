@@ -13,8 +13,10 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 import org.junit.Test;
+import org.omg.CORBA.portable.InvokeHandler;
 
 import com.alibaba.fastjson.JSON;
+import com.salama.service.script.core.IScriptContext;
 
 import MetoXML.XmlDeserializer;
 import MetoXML.XmlSerializer;
@@ -57,6 +59,38 @@ public class TestJsonAndXml {
             ;
     
     @Test
+    public void testInterface() {
+        try {
+            final ScriptEngineManager engineManager = new ScriptEngineManager();
+            {
+                final ScriptEngine engine = engineManager.getEngineByName("nashorn");
+                final Invocable jsInvoke = (Invocable) engine;
+                final Compilable jsCompiler = (Compilable) engine;
+                
+                String script = ""
+                        + "Test1 = new ("
+                        + "function() {\n"
+                        + "  this.reload = function(a, b, c) {\n"
+                        + "      print("
+                        + "        'reload() arguments.length:' + arguments.length"
+                        + "      );\n"
+                        + "  };\n"
+                        + "  this.destroy = function(a, b) {\n"
+                        + "  };\n"
+                        + "}"
+                        + ");"
+                        ;
+                
+                CompiledScript compiledScript = jsCompiler.compile(script);
+                IScriptContext inst = jsInvoke.getInterface(compiledScript.eval(), IScriptContext.class);
+                System.out.println("getInterface() -> " + inst);
+            }
+                      
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+     }
+    
     public void testXml_2() {
         try {
             final ScriptEngineManager engineManager = new ScriptEngineManager();
