@@ -149,6 +149,7 @@ public class TestJsonAndXml {
                 Map<String, Object> jsData = (Map<String, Object>) jsInvoke.invokeMethod(jsObj, "makeData");
                 testXml(jsData, Map.class);
                 
+                
                 System.out.println("testXml 1 -----------------");
                 jsInvoke.invokeMethod(jsObj, "testXml", jsData);
                 System.out.println("testXml 2 -----------------");

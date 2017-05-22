@@ -1,7 +1,6 @@
 package com.salama.service.script.dispatcher;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
@@ -26,7 +25,6 @@ import org.apache.log4j.Logger;
 
 import com.salama.service.core.net.RequestWrapper;
 import com.salama.service.core.net.ResponseWrapper;
-import com.salama.service.script.ScriptServiceContext;
 import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptContext;
 import com.salama.service.script.core.IScriptService;
@@ -39,7 +37,6 @@ import com.salama.service.script.core.ServiceTarget;
 
 import MetoXML.XmlDeserializer;
 import MetoXML.Base.XmlParseException;
-import MetoXML.Util.ClassFinder;
 
 public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     private final static Logger logger = Logger.getLogger(ScriptServiceDispatcher.class);
@@ -63,6 +60,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     //key:$app    value:ScriptSourceManager
     private final ConcurrentHashMap<String, ScriptSourceManager> _scriptSourceManagerMap = new ConcurrentHashMap<String, ScriptSourceManager>();
     private final ReentrantLock _lockForScriptSourceManager = new ReentrantLock();
+    
+    @Override
+    public String serviceName() {
+        return null;
+    }
     
     @Override
     public IScriptSourceWatcher getScriptSourceWatcher() {
@@ -121,15 +123,44 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
 
     @Override
     public void destroy() {
-        //destroy Script Objects
+        //destroy engine Objects
         try {
             for(Entry<String, ScriptSourceManager> sourceManagerEntry : _scriptSourceManagerMap.entrySet()) {
                 try {
                     final String app = sourceManagerEntry.getKey();
-                    for(Entry<String, Object> jsObjEntry : sourceManagerEntry.getValue()
+                    
+                    for(Entry<String, Object> objEntry : sourceManagerEntry.getValue()
                             .getEngine().getBindings(ScriptContext.ENGINE_SCOPE).entrySet()) {
-                        final String serviceName = jsObjEntry.getKey();
-                        destroyWhenScriptContext(app, serviceName);
+                        final String serviceName = objEntry.getKey();
+                        final Object obj = objEntry.getValue();
+                        
+                        if(IScriptContext.class.isAssignableFrom(obj.getClass())) {
+                            //destroy old one
+                            ((IScriptContext) obj).destroy();
+                            logger.info("JavaObj destroyed ->"
+                                    + " app[" + app + "] varName[" + serviceName + "]" 
+                                    );
+                        } else {
+                            IScriptContext scriptContext = null;
+                            try {
+                                scriptContext = jsObjToInterface(
+                                        (Invocable)sourceManagerEntry.getValue().getEngine(), 
+                                        obj, 
+                                        IScriptContext.class
+                                        );
+                            } catch (Throwable e) {
+                                logger.info("ScriptService have no destroy method."
+                                        + " app[" + app + "] serviceName[" + serviceName + "]"
+                                        );
+                            }
+                            
+                            if(scriptContext != null) {
+                                scriptContext.destroy();
+                                logger.info("ScriptContext destroyed ->"
+                                        + " app[" + app + "] serviceName:[" + serviceName + "]" 
+                                        );
+                            }
+                        }
                     }
                 } catch(Throwable e) {
                     logger.error(null, e);
@@ -139,19 +170,19 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             logger.error(null, e);
         }
         
-        //destroy global
+        //destroy global objects
         for(Entry<String, Object> objEntry : _scriptEngineManager.getBindings().entrySet()) {
             try {
                 final String varName = objEntry.getKey();
                 final Object obj = objEntry.getValue();
                 if(destroyJavaObj(obj)) {
                     logger.info("JavaObj destroyed ->"
-                            + " app[" + app + "] varName[" + varName + "]" 
+                            + " app[null] varName[" + varName + "]" 
                             );
                 }
                 
                 logger.info("JavaObj destroyed ->"
-                        + " app[" + app + "] varName[" + varName + "]" 
+                        + " app[null] varName[" + varName + "]" 
                         );
             } catch(Throwable e) {
                 logger.error(null, e);
@@ -159,6 +190,13 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         } 
         
         //destroy 
+        try {
+            _scriptSourceProvider.destroy();
+        } catch(Throwable e) {
+            logger.error(null, e);
+        }
+        
+        logger.info("scrip dispatcher destroy finished ------");
     }
 
     private class MyScriptSourceWatcher implements IScriptSourceWatcher {
@@ -318,6 +356,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 getScriptSourceManager(app).getEngine().put(varName, obj);
             }
             
+            logger.info(
+                    "javaObj updated."
+                    + " app[" + app + "] varName:[" + varName + "]"
+                    + " obj:" + obj
+                    );
             return true;
         } catch (Throwable e) {
             logger.info("onJavaObjUpdated() succeeded"
@@ -367,6 +410,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         } else {
             getScriptSourceManager(app).getEngine().getBindings(ScriptContext.ENGINE_SCOPE).remove(varName);
         }
+        
+        logger.info(
+                "javaObj deleted."
+                + " app[" + app + "] varName:[" + varName + "]"
+                );
     }
     
     private boolean destroyJavaObj(Object obj) {
@@ -403,11 +451,25 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         final CompiledScript compiledScript = ((Compilable) engine).compile(script);
         final Object jsObj = compiledScript.eval();
         if(jsObj == null) {
+            logger.info(
+                    "script source updated."
+                    + " app[" + app + "] serviceName:[null]"
+                    + " compiledScript:" + compiledScript
+                    );
             return null;
         }
         
         final IScriptService scriptService = jsObjToInterface((Invocable) engine, jsObj, IScriptService.class);
         String serviceName = scriptService.serviceName();
+        if(serviceName == null || serviceName.length() == 0) {
+            logger.info(
+                    "script source updated."
+                    + " app[" + app + "] serviceName:[" + serviceName + "]"
+                    + " compiledScript:" + compiledScript
+                    );
+            return null;
+        }
+        
         if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
             throw new RuntimeException("Invalid format of app:");
         }
@@ -444,6 +506,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             getScriptSourceManager(app).putCompiledScript(scriptService.serviceName(), compiledScript);
         }
 
+        logger.info(
+                "script source updated."
+                + " app[" + app + "] serviceName:[" + serviceName + "]"
+                + " compiledScript:" + compiledScript
+                );
         return serviceName;
     }
     
@@ -456,6 +523,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             getScriptSourceManager(app).getEngine().getBindings(ScriptContext.ENGINE_SCOPE).remove(serviceName);
             getScriptSourceManager(app).deleteCompiledScript(serviceName);
         }
+        
+        logger.info(
+                "script source deleted."
+                + " app[" + app + "] serviceName:[" + serviceName + "]"
+                );
     } 
     
     private void destroyWhenScriptContext(String app, String serviceName) {
