@@ -2,7 +2,7 @@ package com.salama.service.script.core;
 
 import com.salama.service.core.net.RequestWrapper;
 
-public interface IServiceTargetFinder {
+public interface IServiceTargetFinder extends IScriptContext {
 
     ServiceTarget findOut(RequestWrapper request);
 

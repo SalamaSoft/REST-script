@@ -107,10 +107,15 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 _scriptSourceProvider.addWatcher(_scriptSourceWatcher);
                 
                 //reload
-                _scriptSourceProvider.reload(
-                        _configLocationResolver.resolveConfigLocation(_config.getScriptSourceProvider().getConfigLocation()), 
-                        _configLocationResolver
-                        );
+                Reader configReader = _configLocationResolver.resolveConfigLocation(_config.getScriptSourceProvider().getConfigLocation());
+                try {
+                    _scriptSourceProvider.reload(
+                            configReader, 
+                            _configLocationResolver
+                            );
+                } finally {
+                    configReader.close();
+                }
                 
             }
             
@@ -311,7 +316,12 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     private IScriptContext createAndReloadScriptContext(ScriptContextSetting setting) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
         Class<IScriptContext> type = (Class<IScriptContext>) getDefaultClassLoader().loadClass(setting.getClassName());
         IScriptContext scriptContext = (IScriptContext) type.newInstance();
-        scriptContext.reload(_configLocationResolver.resolveConfigLocation(setting.getConfigLocation()), _configLocationResolver);
+        Reader configReader = _configLocationResolver.resolveConfigLocation(setting.getConfigLocation()); 
+        try {
+            scriptContext.reload(configReader, _configLocationResolver);
+        } finally {
+            configReader.close();
+        }
         
         return scriptContext;
     }

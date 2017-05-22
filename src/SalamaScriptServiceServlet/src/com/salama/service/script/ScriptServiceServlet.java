@@ -38,7 +38,7 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     
     private final static AtomicLong _servletCounter = new AtomicLong();
     
-    private ScriptServiceContext _scriptSericeContext = null;
+    private ScriptServiceServletContext _scriptSericeContext = null;
     private FileUploadSupport _fileUploadSupport = null;
     private String _encoding = null;
     private IScriptServiceDispatcher _serviceDispatcher = null;
@@ -49,8 +49,8 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     public void init() throws ServletException {
         super.init();
         
-        _scriptSericeContext = (ScriptServiceContext) ServiceContext.getContext(
-                getServletContext()).getContext(ScriptServiceContext.class
+        _scriptSericeContext = (ScriptServiceServletContext) ServiceContext.getContext(
+                getServletContext()).getContext(ScriptServiceServletContext.class
                         );
         _encoding = _scriptSericeContext.getEncoding();
         _fileUploadSupport = _scriptSericeContext.getFileUploadSupport();

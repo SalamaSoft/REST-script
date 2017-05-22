@@ -1,5 +1,7 @@
 package com.salama.service.script;
 
+import java.io.IOException;
+import java.io.Reader;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
@@ -7,11 +9,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 
 import com.salama.service.core.net.RequestWrapper;
+import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IServiceTargetFinder;
 import com.salama.service.script.core.ServiceTarget;
 
-public class DefaultServiceTargetFinder implements IServiceTargetFinder {
-    private final static Logger logger = Logger.getLogger(DefaultServiceTargetFinder.class);
+public class UriServiceTargetFinder implements IServiceTargetFinder {
+    private final static Logger logger = Logger.getLogger(UriServiceTargetFinder.class);
     
     private final static String REGEX_APP = "[a-zA-Z0-9\\-_\\.]+";
     private final static String REGEX_SERVICE_NAME = "[a-zA-Z0-9\\-_\\.]+";
@@ -19,7 +22,7 @@ public class DefaultServiceTargetFinder implements IServiceTargetFinder {
     private final Pattern _patternApp = Pattern.compile(REGEX_APP);
     private final Pattern _patternServiceName = Pattern.compile(REGEX_SERVICE_NAME);
     
-    public DefaultServiceTargetFinder() {
+    public UriServiceTargetFinder() {
         logger.info(
                 "ServiceTargetFinder ->"
                 + " uri format: " + "/*/.../*/$app/$serviceName.$serviceMethod"
@@ -57,6 +60,19 @@ public class DefaultServiceTargetFinder implements IServiceTargetFinder {
     @Override
     public boolean verifyFormatOfServiceName(String serviceName) {
         return _patternServiceName.matcher(serviceName).matches();
+    }
+
+    @Override
+    public void reload(Reader config, IConfigLocationResolver configLocationResolver) throws IOException {
+    }
+
+    @Override
+    public void destroy() {
+    }
+
+    @Override
+    public String serviceName() {
+        return null;
     }
 
 

@@ -2,9 +2,10 @@ package com.salama.service.script.config;
 
 import java.io.Serializable;
 
-import com.salama.service.script.dispatcher.ScriptServiceDispatcherConfig;
+import com.salama.service.script.core.ScriptContextSetting;
 
-public class ScriptServiceContextConfig implements Serializable {
+
+public class ScriptServiceServletContextConfig implements Serializable {
 
     private static final long serialVersionUID = -9188805099606762839L;
 
@@ -12,7 +13,7 @@ public class ScriptServiceContextConfig implements Serializable {
     
     private ServletUploadSetting _servletUploadSetting = new ServletUploadSetting();
 
-    private ScriptServiceDispatcherConfig serviceDispatcherConfig;
+    private ScriptContextSetting _serviceDispatcherSetting;
 
     
     public String getEncoding() {
@@ -31,14 +32,13 @@ public class ScriptServiceContextConfig implements Serializable {
         _servletUploadSetting = servletUploadSetting;
     }
 
-    public ScriptServiceDispatcherConfig getServiceDispatcherConfig() {
-        return serviceDispatcherConfig;
+    public ScriptContextSetting getServiceDispatcherSetting() {
+        return _serviceDispatcherSetting;
     }
 
-    public void setServiceDispatcherConfig(ScriptServiceDispatcherConfig serviceDispatcherConfig) {
-        this.serviceDispatcherConfig = serviceDispatcherConfig;
+    public void setServiceDispatcherSetting(ScriptContextSetting serviceDispatcherSetting) {
+        _serviceDispatcherSetting = serviceDispatcherSetting;
     }
 
-    
     
 }
