@@ -42,8 +42,8 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     private final static Logger logger = Logger.getLogger(ScriptServiceDispatcher.class);
     
     public final static String[] Resource_scripts_ForDefaultGlobalVars = new String[] {
-            "com/salama/service/script/resource/script/json.js", 
-            "com/salama/service/script/resource/script/xml.js",
+            "/com/salama/service/script/resource/script/json.js", 
+            "/com/salama/service/script/resource/script/xml.js",
     };
     
     //private final String _scriptEngineName;

@@ -27,7 +27,7 @@ public class TestPathWatcher {
             FileSystem fs = FileSystems.getDefault();
             WatchService pathWatcher = fs.newWatchService();
             
-            _rootPath = fs.getPath(file.getAbsolutePath());
+            _rootPath = fs.getPath(file.getAbsolutePath() + "/");
             System.out.println("_rootPath:" + _rootPath.toAbsolutePath());
             _rootPath.register(
                     pathWatcher, 
@@ -82,8 +82,9 @@ public class TestPathWatcher {
         System.out.println("watchEvent ->"
                 + " count: " + event.count()
                 + " kind: " + event.kind()
-                + "\n_rootPath:" + _rootPath.toFile().getAbsolutePath()
-                + "\npath     :" + path.toFile().getAbsolutePath()
+                //+ "\n_rootPath:" + _rootPath.toFile().getAbsolutePath()
+                + "\npath.toString()\t\t:" + path.toString()
+                + "\npath.getAbsolutePath()\t\t:" + path.toFile().getAbsolutePath()
                 );
     }
 }

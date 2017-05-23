@@ -9,10 +9,10 @@ public class ScriptSourceFileProviderConfig implements Serializable {
     private static final long serialVersionUID = -3623303498891214113L;
     
     private String _globalSourceDir;
+    private List<ScriptContextInitSetting> _globalScriptContextSettings = new ArrayList<>();
     
-    private String _appsSourceDir;
-    
-    private List<ScriptAppSetting> _scriptAppSettings = new ArrayList<>();
+    private String _appSourceDir;
+    private List<ScriptAppSetting> _appSettings = new ArrayList<>();
 
     public String getGlobalSourceDir() {
         return _globalSourceDir;
@@ -22,22 +22,29 @@ public class ScriptSourceFileProviderConfig implements Serializable {
         _globalSourceDir = globalSourceDir;
     }
 
-    public String getAppsSourceDir() {
-        return _appsSourceDir;
+    public List<ScriptContextInitSetting> getGlobalScriptContextSettings() {
+        return _globalScriptContextSettings;
     }
 
-    public void setAppsSourceDir(String appsSourceDir) {
-        _appsSourceDir = appsSourceDir;
+    public void setGlobalScriptContextSettings(List<ScriptContextInitSetting> globalScriptContextSettings) {
+        _globalScriptContextSettings = globalScriptContextSettings;
     }
 
-    public List<ScriptAppSetting> getScriptAppSettings() {
-        return _scriptAppSettings;
+    public String getAppSourceDir() {
+        return _appSourceDir;
     }
 
-    public void setScriptAppSettings(List<ScriptAppSetting> scriptAppSettings) {
-        _scriptAppSettings = scriptAppSettings;
+    public void setAppSourceDir(String appSourceDir) {
+        _appSourceDir = appSourceDir;
     }
 
-    
+    public List<ScriptAppSetting> getAppSettings() {
+        return _appSettings;
+    }
+
+    public void setAppSettings(List<ScriptAppSetting> appSettings) {
+        _appSettings = appSettings;
+    }
+
     
 }
