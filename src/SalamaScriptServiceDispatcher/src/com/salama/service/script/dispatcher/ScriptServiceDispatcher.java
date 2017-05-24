@@ -7,7 +7,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,6 +63,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     @Override
     public String serviceName() {
         return null;
+    }
+    
+    @Override
+    public boolean exposed() {
+        return false;
     }
     
     @Override
@@ -472,7 +476,7 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         final IScriptService scriptService = jsObjToInterface((Invocable) engine, jsObj, IScriptService.class);
         String serviceName = scriptService.serviceName();
         if(serviceName == null || serviceName.length() == 0) {
-            logger.info(
+            logger.warn(
                     "script source updated."
                     + " app[" + app + "] serviceName:[" + serviceName + "]"
                     + " compiledScript:" + compiledScript
@@ -585,6 +589,7 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     }
     */
     
+    /*
     private static String getScriptServiceName(
             Invocable invoke,
             Object jsObj
@@ -597,7 +602,6 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         }
     }
     
-    /*
     private boolean reloadScriptContext(
             Invocable invoke,
             Object jsObj,
@@ -722,9 +726,6 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             return _scriptMap.get(serviceName);
         }
         
-        public Iterator<Entry<String, CompiledScript>> getIterator() {
-            return _scriptMap.entrySet().iterator();
-        }
     }
     
     

@@ -1,5 +1,6 @@
 package com.salama.service.script.sourceprovider;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -15,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-public class DirWatcher {
+public class DirWatcher implements Closeable {
     private final static Logger logger = Logger.getLogger(DirWatcher.class);
     
     public static interface IWatchEventHandler {
@@ -35,6 +36,17 @@ public class DirWatcher {
     public void addDirToWatch(File dir) throws IOException {
         final WatchServiceEntry watchServiceEntry = new WatchServiceEntry(dir.getAbsolutePath());
         _watchServiceEntryList.add(watchServiceEntry);
+    }
+    
+    @Override
+    public void close() throws IOException {
+        for(WatchServiceEntry watchEntry : _watchServiceEntryList) {
+            try {
+                watchEntry._watchService.close();
+            } catch (Throwable e) {
+                logger.error(null, e);
+            }
+        }
     }
     
     private static class WatchServiceEntry {
@@ -83,4 +95,5 @@ public class DirWatcher {
         }
         
     }
+
 }

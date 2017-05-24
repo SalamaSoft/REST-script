@@ -16,10 +16,56 @@ import java.util.TimerTask;
 
 import org.junit.Test;
 
+import com.salama.service.script.sourceprovider.DirWatcher;
+
 public class TestPathWatcher {
     private Path _rootPath;
 
     @Test
+    public void test2() {
+        try {
+            final DirWatcher dirWatcher = new DirWatcher();
+            
+            dirWatcher.addDirToWatch(new File("temp"));
+            dirWatcher.addDirToWatch(new File("temp", "a"));
+            
+            
+            Thread t = new Thread(new Runnable() {
+                
+                @Override
+                public void run() {
+                    try {
+                        while(true) {
+                            dirWatcher.pollEvent(new DirWatcher.IWatchEventHandler() {
+                                
+                                @Override
+                                public void handleEvent(WatchEvent<?> event, File file) {
+                                    System.out.println("handleEvent ->"
+                                            + " count: " + event.count()
+                                            + " kind: " + event.kind()
+                                            + "\nfile\t\t:" + file.getAbsolutePath()
+                                            );
+                                }
+                            });
+                            
+                            Thread.sleep(100);
+                        }
+                    } catch (InterruptedException e) {
+                        System.out.println("pollEvent loop end");
+                    }
+                }
+            });
+            t.start();
+            
+            
+            Thread.sleep(60L * 1000);
+            t.interrupt();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
     public void test1() {
         File file = new File("temp");
         

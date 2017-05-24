@@ -14,6 +14,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -35,6 +36,10 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
     private final List<IScriptSourceWatcher> _scriptWatchers = new ArrayList<IScriptSourceWatcher>();
     
     private ScriptSourceFileProviderConfig _config;
+    private DirWatcher _dirWatcher;
+    private Thread _watchThread;
+    
+    public Map<String, ScriptAppSetting> 
     
     @Override
     public void addWatcher(IScriptSourceWatcher watcher) {
@@ -62,54 +67,13 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
                     }
                     );
             logger.info("ScriptSourceFileProvider reload() start ->"
-                    + " sourceStorageDir:" + _config.getSourceStorageDir()
+                    + " GlobalSourceDir:" + _config.getGlobalSourceDir()
                     );
             
-            FileSystem fs = FileSystems.getDefault();
-            _pathWatcher = fs.newWatchService();
-            
-            _sourceRootPath = fs.getPath(_config.getSourceStorageDir());
-            _sourceRootPath.register(
-                    _pathWatcher, 
-                    StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE,
-                    StandardWatchEventKinds.ENTRY_MODIFY
-                    );
-
-            //start watch thread
-            _watchThread = new Thread(new Runnable() {
-                
-                @Override
-                public void run() {
-                    try {
-                        while(true) {
-                            WatchKey watchKey = _pathWatcher.take();
-                            
-                            //handle events
-                            for(WatchEvent<?> event : watchKey.pollEvents()) {
-                                try {
-                                    handleWatchEvent(event);
-                                } catch(Throwable e) {
-                                    logger.error("Error occurred in handleWatchEvent()", e);
-                                }
-                            }
-                            
-                            //reset key
-                            boolean valid = watchKey.reset();
-                            if(!valid) {
-                                // object no longer registered
-                                logger.info("WatchKey.reset: " + valid);
-                            }
-                        }
-                    } catch (InterruptedException | ClosedWatchServiceException e) {
-                        logger.info("watcher event loop end.");
-                    }
-                }
-            });
-            _watchThread.start();
+            initDirWatcher();
             
             logger.info("ScriptSourceFileProvider reload() done ->"
-                    + " sourceStorageDir:" + _config.getSourceStorageDir()
+                    + " GlobalSourceDir:" + _config.getGlobalSourceDir()
                     );
         } catch (InvocationTargetException | IllegalAccessException | InstantiationException | NoSuchMethodException
                 | XmlParseException 
@@ -120,22 +84,44 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
 
     @Override
     public void destroy() {
+        logger.info("ScriptSourceFileProvider destroy() start");
+        
         try {
             _scriptWatchers.clear();
-            
-            _pathWatcher.close();
-            logger.info("ScriptSourceFileProvider destroy() done");
-            
-            //fail-safe
+        } catch (Throwable e) {
+            logger.error(null, e);
+        }
+        
+        try {
             _watchThread.interrupt();
         } catch (Throwable e) {
             logger.error(null, e);
         }
+        
+        try {
+            _dirWatcher.close();
+        } catch (Throwable e) {
+            logger.error(null, e);
+        }
+        
+        logger.info("ScriptSourceFileProvider destroy() done");
     }
 
     @Override
     public String serviceName() {
         return null;
+    }
+    
+    private void initDirWatcher() throws IOException {
+        _dirWatcher = new DirWatcher();
+        
+        _dirWatcher.addDirToWatch(getGlobalSourceDir());
+        
+        if(_config.getAppSettings() != null) {
+            for(ScriptAppSetting appSetting : _config.getAppSettings()) {
+                _dirWatcher.addDirToWatch(getAppSourceDir(appSetting.getAppId()));
+            }
+        }
     }
 
     @Override
@@ -156,6 +142,18 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
             throw new RuntimeException("Unexpected event kind:" + event.kind());
         }
     }
+    
+    
+    
+    private File getGlobalSourceDir() {
+        return new File(_config.getGlobalSourceDir());
+    }
+    
+    private File getAppSourceDir(String appId) {
+        return new File(_config.getAppSourceDir(), appId);
+    }
+    
+//    private static class Ser
     
     private static String readText(Reader reader) throws IOException {
         StringBuilder str = new StringBuilder();
