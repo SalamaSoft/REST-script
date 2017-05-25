@@ -8,25 +8,27 @@ public class ScriptAppSetting implements Serializable {
 
     private static final long serialVersionUID = 4609165801777611427L;
 
-    private String appId;
+    private String app;
     
-    private List<ScriptContextInitSetting> _scriptContextInitSettings = new ArrayList<>();
+    private List<ScriptInitSetting> _scriptInitSettings = new ArrayList<>();
 
-    public String getAppId() {
-        return appId;
+
+    public String getApp() {
+        return app;
     }
 
-    public void setAppId(String appId) {
-        this.appId = appId;
+    public void setApp(String app) {
+        this.app = app;
     }
 
-    public List<ScriptContextInitSetting> getScriptContextInitSettings() {
-        return _scriptContextInitSettings;
+    public List<ScriptInitSetting> getScriptInitSettings() {
+        return _scriptInitSettings;
     }
 
-    public void setScriptContextInitSettings(List<ScriptContextInitSetting> scriptContextInitSettings) {
-        _scriptContextInitSettings = scriptContextInitSettings;
+    public void setScriptInitSettings(List<ScriptInitSetting> scriptInitSettings) {
+        _scriptInitSettings = scriptInitSettings;
     }
+
        
     
 }

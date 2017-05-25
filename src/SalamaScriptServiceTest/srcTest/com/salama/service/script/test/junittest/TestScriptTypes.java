@@ -1,6 +1,8 @@
 package com.salama.service.script.test.junittest;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import javax.script.Bindings;
 import javax.script.ScriptEngine;

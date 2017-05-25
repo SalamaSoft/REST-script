@@ -8,11 +8,24 @@ public class ScriptSourceFileProviderConfig implements Serializable {
 
     private static final long serialVersionUID = -3623303498891214113L;
     
+    /**
+     * File extension names(to filter files) 
+     */
+    private String _scriptFileExtFilter = ".js,.javascript";
+    
     private String _globalSourceDir;
-    private List<ScriptContextInitSetting> _globalScriptContextSettings = new ArrayList<>();
+    private List<ScriptInitSetting> _globalScriptInitSettings = new ArrayList<>();
     
     private String _appSourceDir;
     private List<ScriptAppSetting> _appSettings = new ArrayList<>();
+
+    public String getScriptFileExtFilter() {
+        return _scriptFileExtFilter;
+    }
+
+    public void setScriptFileExtFilter(String scriptFileExtFilter) {
+        _scriptFileExtFilter = scriptFileExtFilter;
+    }
 
     public String getGlobalSourceDir() {
         return _globalSourceDir;
@@ -22,12 +35,12 @@ public class ScriptSourceFileProviderConfig implements Serializable {
         _globalSourceDir = globalSourceDir;
     }
 
-    public List<ScriptContextInitSetting> getGlobalScriptContextSettings() {
-        return _globalScriptContextSettings;
+    public List<ScriptInitSetting> getGlobalScriptInitSettings() {
+        return _globalScriptInitSettings;
     }
 
-    public void setGlobalScriptContextSettings(List<ScriptContextInitSetting> globalScriptContextSettings) {
-        _globalScriptContextSettings = globalScriptContextSettings;
+    public void setGlobalScriptInitSettings(List<ScriptInitSetting> globalScriptInitSettings) {
+        _globalScriptInitSettings = globalScriptInitSettings;
     }
 
     public String getAppSourceDir() {

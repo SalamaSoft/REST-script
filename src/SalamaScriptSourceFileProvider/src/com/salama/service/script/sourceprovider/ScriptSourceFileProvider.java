@@ -1,7 +1,11 @@
 package com.salama.service.script.sourceprovider;
 
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.ClosedWatchServiceException;
@@ -13,8 +17,10 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
@@ -23,23 +29,31 @@ import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IScriptSourceWatcher;
 import com.salama.service.script.sourceprovider.DirWatcher.IWatchEventHandler;
 import com.salama.service.script.sourceprovider.config.ScriptAppSetting;
-import com.salama.service.script.sourceprovider.config.ScriptContextInitSetting;
+import com.salama.service.script.sourceprovider.config.ScriptInitSetting;
 import com.salama.service.script.sourceprovider.config.ScriptSourceFileProviderConfig;
 
 import MetoXML.XmlDeserializer;
 import MetoXML.Base.XmlParseException;
 import MetoXML.Util.ClassFinder;
 
-public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEventHandler {
+public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private final static Logger logger = Logger.getLogger(ScriptSourceFileProvider.class);
+    
+    public final static String DEFAULT_CHARSET = "utf-8";
+    
+    private final static String APP_NAME_GLOBAL = "$";    
     
     private final List<IScriptSourceWatcher> _scriptWatchers = new ArrayList<IScriptSourceWatcher>();
     
+    private IConfigLocationResolver _configLocationResolver;
     private ScriptSourceFileProviderConfig _config;
     private DirWatcher _dirWatcher;
     private Thread _watchThread;
+    private File _globalSourceDir;
+    private File _appSourceDir;
     
-    public Map<String, ScriptAppSetting> 
+    private String[] _scriptFileExtFilterNames;
+    private AppScriptLocationMap _appScriptLocationMap = new AppScriptLocationMap();
     
     @Override
     public void addWatcher(IScriptSourceWatcher watcher) {
@@ -56,8 +70,8 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
                         
                         @Override
                         public Class<?> findClass(String className) throws ClassNotFoundException {
-                            if(className.equals(ScriptContextInitSetting.class.getSimpleName())) {
-                                return ScriptContextInitSetting.class;
+                            if(className.equals(ScriptInitSetting.class.getSimpleName())) {
+                                return ScriptInitSetting.class;
                             } else if (className.equals(ScriptAppSetting.class.getSimpleName())) { 
                                 return ScriptAppSetting.class;
                             } else {
@@ -66,11 +80,60 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
                         }
                     }
                     );
+            _globalSourceDir = new File(_config.getGlobalSourceDir());
+            if(!_globalSourceDir.exists() || !_globalSourceDir.isDirectory()) {
+                throw new IOException("GlobalSourceDir must be an existing directory ->" + _config.getGlobalSourceDir());
+            }
+            _appSourceDir = new File(_config.getAppSourceDir());
+            if(!_appSourceDir.exists() || !_appSourceDir.isDirectory()) {
+                throw new IOException("AppSourceDir must be an existing directory ->" + _config.getAppSourceDir());
+            }
+            
+            _configLocationResolver = configLocationResolver;
+            
+            _scriptFileExtFilterNames = Arrays.asList(
+                    _config.getScriptFileExtFilter()
+                    .split("[ \\t]*,[ \\t]*")
+                    ).stream()
+                    .map(s -> s.trim())
+                    .filter(s -> s.length() > 0)
+                    .toArray(String[]::new)
+                    ;
+            
             logger.info("ScriptSourceFileProvider reload() start ->"
-                    + " GlobalSourceDir:" + _config.getGlobalSourceDir()
+                    + " GlobalSourceDir:" + _globalSourceDir.getAbsolutePath()
+                    + " AppSourceDir:" + _appSourceDir.getAbsolutePath()
                     );
             
             initDirWatcher();
+            
+            initLoadScriptFiles();
+            
+            //init watchThread
+            final IWatchEventHandler watchEventHandler = new IWatchEventHandler() {
+                
+                @Override
+                public void handleEvent(WatchEvent<?> event, File file) {
+                    handleDirWatchEvent(event.kind(), file);
+                }
+            };
+            _watchThread = new Thread(new Runnable() {
+                
+                @Override
+                public void run() {
+                    try {
+                        while(true) {
+                            _dirWatcher.pollEvent(watchEventHandler);
+                            
+                            Thread.sleep(200);
+                        }
+                    } catch (Throwable e) {
+                        //Normally the exception is ClosedWatchServiceException or InterruptedException 
+                        logger.info("WatchThread loop end", e);
+                    }
+                }
+            });
+            _watchThread.start();
             
             logger.info("ScriptSourceFileProvider reload() done ->"
                     + " GlobalSourceDir:" + _config.getGlobalSourceDir()
@@ -104,6 +167,12 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
             logger.error(null, e);
         }
         
+        try {
+            _appScriptLocationMap.clear();
+        } catch (Throwable e) {
+            logger.error(null, e);
+        }
+        
         logger.info("ScriptSourceFileProvider destroy() done");
     }
 
@@ -119,42 +188,236 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider, IWatchEv
         
         if(_config.getAppSettings() != null) {
             for(ScriptAppSetting appSetting : _config.getAppSettings()) {
-                _dirWatcher.addDirToWatch(getAppSourceDir(appSetting.getAppId()));
+                _dirWatcher.addDirToWatch(getAppSourceDir(appSetting.getApp()));
+            }
+        }
+        
+        //scriptName -> scriptInitSetting
+        for(ScriptInitSetting scriptInitSetting : _config.getGlobalScriptInitSettings()) {
+            _appScriptLocationMap.setScriptInitSetting(null, scriptInitSetting);
+        }
+        if(_config.getAppSettings() != null) {
+            for(ScriptAppSetting appSetting : _config.getAppSettings()) {
+                String app = appSetting.getApp();
+                
+                for(ScriptInitSetting scriptInitSetting : appSetting.getScriptInitSettings()) {
+                    _appScriptLocationMap.setScriptInitSetting(app, scriptInitSetting);
+                }
+            }
+        }
+        
+    }
+    
+    private FileFilter _scriptFileFilter = new FileFilter() {
+        
+        @Override
+        public boolean accept(File file) {
+            if(file.isHidden()) {
+                return false;
+            }
+            
+            if(_scriptFileExtFilterNames.length > 0) {
+                boolean matched = false;
+                for(String filterExtName : _scriptFileExtFilterNames) {
+                    matched = file.getName().endsWith(filterExtName);
+                    if(matched) {
+                        break;
+                    }
+                }
+                if(!matched) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+    };
+    
+    private void initLoadScriptFiles() {
+        //global script ------
+        {
+            File[] files = _globalSourceDir.listFiles(_scriptFileFilter);
+            if(files != null) {
+                for(File file : files) {
+                    try {
+                        handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                    } catch (Throwable e) {
+                        logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
+                    }
+                }
+            }
+        }
+        
+        //app script ------
+        if(_config.getAppSettings() != null) {
+            for(ScriptAppSetting appSetting : _config.getAppSettings()) {
+                String app = appSetting.getApp();
+                
+                try {
+                    File[] files = (new File(_appSourceDir, app)).listFiles(_scriptFileFilter);
+                    if(files != null) {
+                        for(File file : files) {
+                            try {
+                                handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                            } catch (Throwable e) {
+                                logger.error("Error occurred in load app script. file:" + file.getAbsolutePath(), e);
+                            }
+                        }
+                    }
+                } catch (Throwable e) {
+                    logger.error("Error occurred in load app script. app:" + app, e);
+                }
             }
         }
     }
 
-    @Override
-    public void handleEvent(WatchEvent<?> event, File file) {
-        if(event.kind() == StandardWatchEventKinds.ENTRY_CREATE
-                || event.kind() == StandardWatchEventKinds.ENTRY_MODIFY
+    private void handleDirWatchEvent(WatchEvent.Kind<?> eventKind, File file) {
+        //ignore hidden files
+        if(!_scriptFileFilter.accept(file)) {
+            logger.info("handleEvent() file ignored ->"
+                    + " eventKind: " + eventKind
+                    + " file: " + file.getAbsolutePath()
+                    + " file.isHidden: " + file.isHidden()
+                    );
+            return;
+        }
+        
+        //handle event
+        final String app = parseapp(file);
+        final String scriptName = file.getName();
+        
+        if(eventKind == StandardWatchEventKinds.ENTRY_CREATE
+                || eventKind == StandardWatchEventKinds.ENTRY_MODIFY
                 ) {
+            final ScriptInitSetting scriptInitSetting = _appScriptLocationMap.getScriptInitSetting(app, scriptName); 
             for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
                 try {
-                    sourceWatcher.onScriptSourceUpdated(app, script, config)
+                    Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                    try {
+                        Reader config = null;
+                        if(scriptInitSetting != null 
+                                && scriptInitSetting.getConfigLocation() != null
+                                && scriptInitSetting.getConfigLocation().trim().length() != 0
+                                ) {
+                            config = _configLocationResolver.resolveConfigLocation(scriptInitSetting.getConfigLocation());
+                        }            
+                        try {
+                            String serviceName = sourceWatcher.onScriptSourceUpdated(app, script, config);
+                            if(serviceName != null && serviceName.length() > 0) {
+                                _appScriptLocationMap.setServiceName(app, scriptName, serviceName);
+                            }
+                        } finally {
+                            if(config != null) {
+                                config.close();
+                            }
+                        }                        
+                    } finally {
+                        script.close();
+                    }
                 } catch (Throwable e) {
                     logger.error(null, e);
                 }
             }
-        } else if(event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+        } else if(eventKind == StandardWatchEventKinds.ENTRY_DELETE) {
+            final String serviceName = _appScriptLocationMap.getServiceName(app, scriptName);
             
+            if(serviceName != null && serviceName.length() != 0) {
+                for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
+                    try {
+                        sourceWatcher.onScriptSourceDeleted(app, serviceName);
+                    } catch (Throwable e) {
+                        logger.error(null, e);
+                    }
+                }
+            }
         } else {
-            throw new RuntimeException("Unexpected event kind:" + event.kind());
+            throw new RuntimeException("Unexpected event kind:" + eventKind);
         }
     }
     
-    
+    private class AppScriptLocationMap {
+        //key:$app + '/' + scriptName ('$' if global)       value:ScriptInitSetting
+        private Map<String, ScriptInitSetting> _scriptInitSettingMap = new ConcurrentHashMap<>();
+        
+        //key:$app + '/' + scriptName ('$' if global)       value:serviceName
+        private Map<String, String> _scriptServiceNameMap = new ConcurrentHashMap<>();
+        
+        public void clear() {
+            try {
+                _scriptInitSettingMap.clear();
+            } catch (Throwable e) {
+                logger.error(null, e);
+            }
+            
+            try {
+                _scriptServiceNameMap.clear();
+            } catch (Throwable e) {
+                logger.error(null, e);
+            }
+        }
+        
+        public ScriptInitSetting getScriptInitSetting(
+                String app, String scriptName
+                ) {
+            return _scriptInitSettingMap.get(
+                    toAppScriptLocation(app, scriptName) 
+                    );
+        }
+
+        public void setScriptInitSetting(
+                String app, 
+                ScriptInitSetting scriptInitSetting
+                ) {
+            _scriptInitSettingMap.put(
+                    toAppScriptLocation(app, scriptInitSetting.getScriptName()), 
+                    scriptInitSetting
+                    );
+        }
+        
+        public String getServiceName(String app, String scriptName) {
+            return _scriptServiceNameMap.get(toAppScriptLocation(app, scriptName));
+        }
+        
+        public void setServiceName(String app, String scriptName, String serviceName) {
+            _scriptServiceNameMap.put(toAppScriptLocation(app, scriptName), serviceName);
+        }
+        
+        private String toAppScriptLocation(String app, String scriptName) {
+            if(app == null || app.length() == 0) {
+                return APP_NAME_GLOBAL + "/" + scriptName;
+            } else {
+                return app + "/" + scriptName;
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param file
+     * @return null if global
+     */
+    private String parseapp(File file) {
+        final File parent = file.getParentFile();
+        
+        if(parent.getAbsolutePath().equals(_globalSourceDir.getAbsolutePath())) {
+            return null;
+        } else {
+            if(parent.getParentFile().getAbsolutePath().equals(_globalSourceDir.getAbsolutePath())) {
+                return parent.getName();
+            } else {
+                throw new RuntimeException("Invalid script file path: " + file.getAbsolutePath());
+            }
+        }
+    }
     
     private File getGlobalSourceDir() {
         return new File(_config.getGlobalSourceDir());
     }
     
-    private File getAppSourceDir(String appId) {
-        return new File(_config.getAppSourceDir(), appId);
+    private File getAppSourceDir(String app) {
+        return new File(_config.getAppSourceDir(), app);
     }
-    
-//    private static class Ser
-    
+        
     private static String readText(Reader reader) throws IOException {
         StringBuilder str = new StringBuilder();
 

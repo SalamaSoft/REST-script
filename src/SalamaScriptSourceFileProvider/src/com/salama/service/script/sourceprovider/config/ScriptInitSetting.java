@@ -1,6 +1,6 @@
 package com.salama.service.script.sourceprovider.config;
 
-public class ScriptContextInitSetting {
+public class ScriptInitSetting {
 
     private String _scriptName;
     
