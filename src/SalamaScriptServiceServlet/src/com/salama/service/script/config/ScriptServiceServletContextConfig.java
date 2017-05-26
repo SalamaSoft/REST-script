@@ -9,21 +9,11 @@ public class ScriptServiceServletContextConfig implements Serializable {
 
     private static final long serialVersionUID = -9188805099606762839L;
 
-    private String encoding = "utf-8";
-    
     private ServletUploadSetting _servletUploadSetting = new ServletUploadSetting();
 
     private ScriptContextSetting _serviceDispatcherSetting;
 
     
-    public String getEncoding() {
-        return encoding;
-    }
-
-    public void setEncoding(String encoding) {
-        this.encoding = encoding;
-    }
-
     public ServletUploadSetting getServletUploadSetting() {
         return _servletUploadSetting;
     }

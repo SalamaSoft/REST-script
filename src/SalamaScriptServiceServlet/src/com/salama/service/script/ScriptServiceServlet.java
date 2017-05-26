@@ -40,7 +40,6 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     
     private ScriptServiceServletContext _scriptSericeContext = null;
     private FileUploadSupport _fileUploadSupport = null;
-    private String _encoding = null;
     private IScriptServiceDispatcher _serviceDispatcher = null;
     
     private long _servletNum;
@@ -52,7 +51,6 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
         _scriptSericeContext = (ScriptServiceServletContext) ServiceContext.getContext(
                 getServletContext()).getContext(ScriptServiceServletContext.class
                         );
-        _encoding = _scriptSericeContext.getEncoding();
         _fileUploadSupport = _scriptSericeContext.getFileUploadSupport();
         _serviceDispatcher = _scriptSericeContext.getServiceDispatcher();
         
@@ -66,7 +64,6 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
         
         _scriptSericeContext = null;
         _fileUploadSupport = null;
-        _encoding = null;
         _serviceDispatcher = null;
         
         logger.info("ScriptServlet[" + _servletNum + "] --> destroyed.");
@@ -160,7 +157,7 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
                 return "";
             } else {
                 String responseType = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_TYPE);
-                return ResponseConverter.convertResponse(responseType, retVal, _encoding);
+                return ResponseConverter.convertResponse(responseType, retVal, request.getCharacterEncoding());
             }
         } catch (Throwable e) {
             if(e.getClass() == MethodAccessNoAuthorityException.class) {

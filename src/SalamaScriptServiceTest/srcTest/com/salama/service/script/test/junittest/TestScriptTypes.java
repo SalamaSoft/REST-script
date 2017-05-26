@@ -15,6 +15,22 @@ public class TestScriptTypes {
     
 
     @Test
+    public void test_char() {
+        try {
+            final ScriptEngine engine = createEngine();
+            String script = ""
+                    + "var CharArray = Java.type('char[]');\n"
+                    + "var cbuf = new CharArray(10);\n"
+                    + "print('typeof cbuf:' + (typeof cbuf));\n"
+                    + "cbuf.length;\n"
+                    ;
+            Object jsObj = engine.eval(script);
+            System.out.println("jsObj:" + jsObj);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    
     public void test_ScriptObj() {
         try {
             final ScriptEngine engine = createEngine();

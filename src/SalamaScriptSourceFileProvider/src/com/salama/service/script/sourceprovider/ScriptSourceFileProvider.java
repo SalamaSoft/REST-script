@@ -3,19 +3,12 @@ package com.salama.service.script.sourceprovider;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.ClosedWatchServiceException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -39,6 +32,7 @@ import MetoXML.Util.ClassFinder;
 public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private final static Logger logger = Logger.getLogger(ScriptSourceFileProvider.class);
     
+    
     public final static String DEFAULT_CHARSET = "utf-8";
     
     private final static String APP_NAME_GLOBAL = "$";    
@@ -49,8 +43,8 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private ScriptSourceFileProviderConfig _config;
     private DirWatcher _dirWatcher;
     private Thread _watchThread;
-    private File _globalSourceDir;
-    private File _appSourceDir;
+    private File _globalSourceDir = null;
+    private File _appSourceDir = null;
     
     private String[] _scriptFileExtFilterNames;
     private AppScriptLocationMap _appScriptLocationMap = new AppScriptLocationMap();
@@ -80,10 +74,12 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                         }
                     }
                     );
+            
             _globalSourceDir = new File(_config.getGlobalSourceDir());
             if(!_globalSourceDir.exists() || !_globalSourceDir.isDirectory()) {
                 throw new IOException("GlobalSourceDir must be an existing directory ->" + _config.getGlobalSourceDir());
             }
+            
             _appSourceDir = new File(_config.getAppSourceDir());
             if(!_appSourceDir.exists() || !_appSourceDir.isDirectory()) {
                 throw new IOException("AppSourceDir must be an existing directory ->" + _config.getAppSourceDir());
@@ -101,8 +97,8 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     ;
             
             logger.info("ScriptSourceFileProvider reload() start ->"
-                    + " GlobalSourceDir:" + _globalSourceDir.getAbsolutePath()
-                    + " AppSourceDir:" + _appSourceDir.getAbsolutePath()
+                    + "\nGlobalSourceDir:" + _config.getGlobalSourceDir()
+                    + "\nAppSourceDir:" + _config.getAppSourceDir()
                     );
             
             initDirWatcher();
@@ -315,7 +311,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                         script.close();
                     }
                 } catch (Throwable e) {
-                    logger.error(null, e);
+                    logger.error("scriptFile:" + file.getAbsolutePath(), e);
                 }
             }
         } else if(eventKind == StandardWatchEventKinds.ENTRY_DELETE) {
@@ -326,7 +322,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     try {
                         sourceWatcher.onScriptSourceDeleted(app, serviceName);
                     } catch (Throwable e) {
-                        logger.error(null, e);
+                        logger.error("scriptFile:" + file.getAbsolutePath(), e);
                     }
                 }
             }
@@ -402,7 +398,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         if(parent.getAbsolutePath().equals(_globalSourceDir.getAbsolutePath())) {
             return null;
         } else {
-            if(parent.getParentFile().getAbsolutePath().equals(_globalSourceDir.getAbsolutePath())) {
+            if(parent.getParentFile().getAbsolutePath().equals(_appSourceDir.getAbsolutePath())) {
                 return parent.getName();
             } else {
                 throw new RuntimeException("Invalid script file path: " + file.getAbsolutePath());

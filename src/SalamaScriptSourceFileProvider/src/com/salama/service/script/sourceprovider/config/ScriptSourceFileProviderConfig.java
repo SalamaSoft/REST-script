@@ -9,9 +9,9 @@ public class ScriptSourceFileProviderConfig implements Serializable {
     private static final long serialVersionUID = -3623303498891214113L;
     
     /**
-     * File extension names(to filter files) 
+     * File extension names(to filter files). Separated by comma if multiple ones.
      */
-    private String _scriptFileExtFilter = ".js,.javascript";
+    private String _scriptFileExtFilter = ".js";
     
     private String _globalSourceDir;
     private List<ScriptInitSetting> _globalScriptInitSettings = new ArrayList<>();

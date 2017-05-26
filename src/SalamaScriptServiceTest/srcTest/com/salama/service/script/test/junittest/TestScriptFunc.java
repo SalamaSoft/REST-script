@@ -44,6 +44,10 @@ public class TestScriptFunc {
                     + "      ; \n"
                     + "    print('result:' + result);\n"
                     + "  };\n"
+                    + "  //as private method"
+                    + "  function test2() {\n"
+                    + "    print('test2 -----');\n"
+                    + "  }\n"
                     + "}"
                     + ");"
                     ;

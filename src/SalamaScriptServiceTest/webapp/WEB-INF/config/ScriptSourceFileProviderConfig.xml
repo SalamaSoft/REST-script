@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScriptSourceFileProviderConfig>
+  <scriptFileExtFilter>.js</scriptFileExtFilter>
+
+  <globalSourceDir>/Users/beef_in_jp/Documents/GitHubProjects/SalamaSoft/REST-script/src/SalamaScriptServiceTest/webapp/WEB-INF/script_global_src</globalSourceDir>
+  <globalScriptInitSettings>
+      <ScriptInitSetting>
+          <scriptName>LoggerUtil.js</scriptName>
+          <configLocation></configLocation>
+      </ScriptInitSetting>
+      <ScriptInitSetting>
+          <scriptName>IOUtil.js</scriptName>
+          <configLocation></configLocation>
+      </ScriptInitSetting>
+  </globalScriptInitSettings>
+
+
+  <appSourceDir>/Users/beef_in_jp/Documents/GitHubProjects/SalamaSoft/REST-script/src/SalamaScriptServiceTest/webapp/WEB-INF/script_app_src</appSourceDir>
+  <appSettings>
+      <ScriptAppSetting>
+          <app>app1</app>
+          
+          <scriptInitSettings>
+              <ScriptInitSetting>
+                  <scriptName>TestContext1.js</scriptName>
+                  <configLocation>/WEB-INF/script_app_conf/app1/TestContext1.xml</configLocation>
+              </ScriptInitSetting>
+          </scriptInitSettings>
+          
+      </ScriptAppSetting>
+  </appSettings>
+  
+</ScriptSourceFileProviderConfig>

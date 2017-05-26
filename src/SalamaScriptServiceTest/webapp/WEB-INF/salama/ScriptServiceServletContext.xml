@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScriptServiceServletContextConfig>
+  <serviceDispatcherSetting>
+    <className>com.salama.service.script.dispatcher.ScriptServiceDispatcher</className>
+    <configLocation>/WEB-INF/config/ScriptServiceDispatcherConfig.xml</configLocation>
+  </serviceDispatcherSetting>
+  
+  <servletUploadSetting>
+    <fileSizeMax>5242880</fileSizeMax>
+    <sizeMax>20971520</sizeMax>
+    <sizeThreshold>524288</sizeThreshold>
+    <tempDirPath></tempDirPath>
+  </servletUploadSetting>
+</ScriptServiceServletContextConfig>

@@ -66,11 +66,6 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     }
     
     @Override
-    public boolean exposed() {
-        return false;
-    }
-    
-    @Override
     public IScriptSourceWatcher getScriptSourceWatcher() {
         return _scriptSourceWatcher;
     }
@@ -211,10 +206,6 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     private class MyScriptSourceWatcher implements IScriptSourceWatcher {
         @Override
         public void onJavaObjUpdated(String app, String varName, Object obj, Reader config) {
-            if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
-                throw new RuntimeException("Invalid format of app:");
-            }
-            
             if(updateJavaObj(app, varName, obj, config)) {
                 logger.info("onJavaObjUpdated() succeeded"
                         + " app[" + app + "]"
@@ -231,10 +222,6 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         
         @Override
         public String onScriptSourceUpdated(String app, Reader script, Reader config) throws ScriptException {
-            if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
-                throw new RuntimeException("Invalid format of app:");
-            }
-            
             try {
                 String serviceName = updateScriptSource(app, script, config);
                 logger.info("onScriptSourceUpdated() -> app:" + app + " serviceName:" + serviceName);
@@ -306,7 +293,10 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             try {
                 InputStreamReader reader = new InputStreamReader(ScriptServiceDispatcher.class.getResourceAsStream(resPath), charset);
                 try {
-                    updateScriptSource(null, reader, null);
+                    Object jsObj = _defaultScriptEngine.eval(reader);
+                    IScriptService scriptService = ((Invocable) _defaultScriptEngine).getInterface(jsObj, IScriptService.class);
+                    String name = scriptService.serviceName();
+                    _scriptEngineManager.put(name, jsObj);
                 } finally {
                     reader.close();
                 }
@@ -324,7 +314,9 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         try {
             scriptContext.reload(configReader, _configLocationResolver);
         } finally {
-            configReader.close();
+            if(configReader != null) {
+                configReader.close();
+            }
         }
         
         return scriptContext;
@@ -338,6 +330,10 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 isGlobal = true;
                 oldObj = _scriptEngineManager.get(varName);
             } else {
+                if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
+                    throw new RuntimeException("Invalid format of app:" + app);
+                }
+                
                 isGlobal = false;
                 oldObj = getScriptSourceManager(app).getEngine().get(varName);
             }
@@ -458,6 +454,10 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             engine = _defaultScriptEngine;
             isGlobal = true;
         } else {
+            if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
+                throw new RuntimeException("Invalid format of app:" + app);
+            }
+            
             engine = getScriptSourceManager(app).getEngine();
             isGlobal = false;
         }
@@ -484,8 +484,8 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             return null;
         }
         
-        if(!_serviceTargetFinder.verifyFormatOfApp(app)) {
-            throw new RuntimeException("Invalid format of app:");
+        if(!_serviceTargetFinder.verifyFormatOfServiceName(serviceName)) {
+            throw new RuntimeException("Invalid format of serviceName:" + serviceName);
         }
         
         //destroy old one ---------------------------------------------
@@ -516,8 +516,12 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 getScriptSourceManager(app).getEngine().put(serviceName, jsObj);
             }
         } else {
-            //stored as a service
-            getScriptSourceManager(app).putCompiledScript(scriptService.serviceName(), compiledScript);
+            if(isGlobal) {
+                _scriptEngineManager.put(serviceName, jsObj);
+            } else {
+                //stored as a service
+                getScriptSourceManager(app).putCompiledScript(scriptService.serviceName(), compiledScript);
+            }
         }
 
         logger.info(

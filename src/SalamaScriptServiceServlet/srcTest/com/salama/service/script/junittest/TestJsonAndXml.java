@@ -13,7 +13,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 import org.junit.Test;
-import org.omg.CORBA.portable.InvokeHandler;
 
 import com.alibaba.fastjson.JSON;
 import com.salama.service.script.core.IScriptContext;

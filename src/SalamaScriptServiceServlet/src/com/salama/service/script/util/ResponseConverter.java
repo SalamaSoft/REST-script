@@ -9,7 +9,7 @@ import com.alibaba.fastjson.JSON;
 
 import MetoXML.XmlSerializer;
 
-public class ResponseConverter {
+public class ResponseConverter {    
     //public final static String COVERT_TYPE_PLAIN_TEXT = "text";
     public final static String CONVERT_TYPE_XML = "xml";
     public final static String CONVERT_TYPE_JSON = "json";
@@ -28,7 +28,7 @@ public class ResponseConverter {
      * 
      * @param responseType ('xml'|'json')[.jsonp=$varName] 
      * @param responseVal 
-     * @param encoding
+     * @param urlEncoding charset for encodeURL
      * @return "" if responseVal is null.
      * return responseVal directly if typeof responseVal is String,
      * otherwise convert into String with responseType if typeof responseVal is not String.
@@ -41,7 +41,7 @@ public class ResponseConverter {
     public static String convertResponse(
             String responseType,
             Object responseVal,
-            String encoding
+            String urlEncoding
             ) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException {
         if(responseVal == null) {
             return "";
@@ -86,8 +86,12 @@ public class ResponseConverter {
             if(jsonpVarName == null) {
                 return responseStr;
             } else {
+                if(urlEncoding == null || urlEncoding.length() == 0) {
+                    urlEncoding = "utf-8";
+                }
+                
                 return "var " + jsonpVarName + " = \"" 
-                        + URLEncoder.encode(responseStr, encoding).replace("+", "%20") 
+                        + URLEncoder.encode(responseStr, urlEncoding).replace("+", "%20") 
                         + "\";\n";
             }
         }

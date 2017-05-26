@@ -66,6 +66,9 @@
 		depends="createBinTmp,copyClass,copySrc,deleteJUnitClass,deleteVssFile,deleteSVN"> 
 		<jar jarfile="${jar.name}" basedir="${bintemp.dir}" />
 		<delete dir="${bintemp.dir}"></delete>
+        <copy todir="../SalamaScriptServiceTest/webapp/WEB-INF/lib/" overwrite="true" verbose="false" >
+            <fileset file="${jar.name}"></fileset>
+        </copy>
 	</target>
 	
 </project>

@@ -38,10 +38,6 @@ public class ScriptServiceServletContext implements CommonContext {
         return _scriptServiceDispatcher;
     }
     
-    public String getEncoding() {
-        return _config.getEncoding();
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void reload(ServletContext servletContext, String configLocation) {
@@ -56,10 +52,6 @@ public class ScriptServiceServletContext implements CommonContext {
                     XmlDeserializer.DefaultCharset
                     );
             
-            if(_config.getEncoding() == null || _config.getEncoding().trim().length() == 0) {
-                _config.setEncoding(DefaultEncoding);
-            }
-            
             _servletContextPathDir = new File(servletContext.getRealPath("/"));
             
             //ScriptServiceDispatcher -------------------------------
@@ -71,7 +63,7 @@ public class ScriptServiceServletContext implements CommonContext {
                 _scriptServiceDispatcher = serviceDispatcherClass.newInstance();
                 final Reader dispatcherConfigReader = new InputStreamReader(
                         new FileInputStream(getRealPathFile(_config.getServiceDispatcherSetting().getConfigLocation())), 
-                        _config.getEncoding()
+                        DefaultEncoding
                         );
                 try {
                     _scriptServiceDispatcher.reload(
@@ -80,7 +72,14 @@ public class ScriptServiceServletContext implements CommonContext {
                                 
                                 @Override
                                 public Reader resolveConfigLocation(String configLocation) throws IOException {
-                                    return new InputStreamReader(new FileInputStream(getRealPathFile(configLocation)), _config.getEncoding());
+                                    if(configLocation == null || configLocation.trim().length() == 0) {
+                                        return null;
+                                    }
+                                    
+                                    return new InputStreamReader(
+                                            new FileInputStream(getRealPathFile(configLocation)), 
+                                            DefaultEncoding
+                                            );
                                 }
                             }
                             );
@@ -98,7 +97,7 @@ public class ScriptServiceServletContext implements CommonContext {
             //Init FileUploadSupport -------------------------------
             {
                 _fileUploadSupport = new FileUploadSupport(servletContext, 
-                        _config.getEncoding(), 
+                        DefaultEncoding, 
                         _config.getServletUploadSetting().getFileSizeMax(), 
                         _config.getServletUploadSetting().getSizeMax(), 
                         _config.getServletUploadSetting().getSizeThreshold(), 

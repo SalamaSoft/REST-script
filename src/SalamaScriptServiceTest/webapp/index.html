@@ -1,0 +1,69 @@
+<html>
+<head>
+    <title>Test Script Service</title>
+
+    <script src="js/jquery-1.9.1.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#btnTest1').bind('click', btnTest1_click);
+        });
+
+        function btnTest1_click(e) {
+            var headers = null;
+            if($('#responseType').val() == "json") {
+                headers = {
+                    "Response-Type": "json"
+                };
+            }
+
+            $.ajax({
+                url: "/test/_sss/app1/Test1.test",
+                type: "POST",
+                dataType: "text",
+                headers: headers,
+                data: {
+                    param1: $('#param1').val(),
+                    param2: $('#param2').val(),
+                    param3: $('#param3').val(),
+                },
+                success: function (response) {
+                    $('#response').text(response);
+                }
+            });
+        }
+    </script>
+</head>
+
+<body>
+
+<div>
+    <label>param1</label>
+    <input id="param1">
+</div>
+<div>
+    <label>param2</label>
+    <input id="param2">
+</div>
+<div>
+    <label>param1</label>
+    <input id="param3">
+</div>
+<div>
+    <label>Response-Type</label>
+    <select id="responseType">
+        <option value="xml">xml</option>
+        <option value="json">json</option>
+    </select>
+</div>
+<div>
+    <input id="btnTest1" type="button" value="Test">
+</div>
+
+<div>
+    <div>---------------------------------------</div>
+    <pre id="response"></pre>
+</div>
+</body>
+
+</html>
