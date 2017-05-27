@@ -1,4 +1,4 @@
-$LoggerUtil = new (function () {
+LoggerUtil = new (function () {
     var Logger = Java.type('org.apache.log4j.Logger');
 
     this.serviceName = function() {

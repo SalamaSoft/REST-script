@@ -6,11 +6,11 @@ $json = new (function () {
     };
 
     this.parse = function(str) {
-        return this._innerType.parseObject(str);
+        return _innerType.parseObject(str);
     };
 
     this.stringfy = function(obj) {
-        return this._innerType.toJSONString(obj);
+        return _innerType.toJSONString(obj);
     };
 
 });

@@ -1,4 +1,4 @@
-$IOUtil = new (function () {
+IOUtil = new (function () {
     var StringBuilder = Java.type("java.lang.StringBuilder");
     var CharArray = Java.type('char[]');
 

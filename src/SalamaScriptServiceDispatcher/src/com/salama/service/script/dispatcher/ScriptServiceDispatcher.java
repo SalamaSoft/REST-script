@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
+import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +45,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             "/com/salama/service/script/resource/script/json.js", 
             "/com/salama/service/script/resource/script/xml.js",
     };
+    
+    public final static String Script_GetApp = ""
+            + "function $getApp() {\n"
+            + "    return '$app';\n"
+            + "}\n";
     
     //private final String _scriptEngineName;
     private ScriptServiceDispatcherConfig _config;
@@ -696,7 +702,7 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 return scriptManager;
             }
             
-            scriptManager = new ScriptSourceManager();
+            scriptManager = new ScriptSourceManager(app);
             _scriptSourceManagerMap.put(app, scriptManager);
             return scriptManager;
         } finally {
@@ -710,8 +716,18 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         //key: $serviceName    value: script object
         private final ConcurrentHashMap<String, CompiledScript> _scriptMap = new ConcurrentHashMap<>();
         
-        public ScriptSourceManager() {
+        public ScriptSourceManager(String app) {
             _engine = createScriptEngine(_scriptEngineManager);
+            
+            //init egine
+            {
+                String script = Script_GetApp.replace("$app", app);
+                try {
+                    _engine.eval(script);
+                } catch (ScriptException e) {
+                    logger.error("Error occurred in eval script:\n" + script, e);
+                }
+            }
         }
         
         public ScriptEngine getEngine() {
