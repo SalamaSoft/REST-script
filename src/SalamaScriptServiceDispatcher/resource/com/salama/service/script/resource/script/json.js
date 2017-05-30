@@ -6,7 +6,7 @@ $json = new (function () {
     };
 
     this.parse = function(str) {
-        return _innerType.parseObject(str);
+        return _innerType.parse(str);
     };
 
     this.stringfy = function(obj) {
