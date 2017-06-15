@@ -6,8 +6,10 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +60,8 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     private ScriptEngineManager _scriptEngineManager;
     private ScriptEngine _defaultScriptEngine;
     
+    private List<String> _sortedScriptContextNameList; 
+    
     private IScriptSourceProvider _scriptSourceProvider;
     private IServiceTargetFinder _serviceTargetFinder;
     private IScriptSourceWatcher _scriptSourceWatcher;    
@@ -92,6 +96,8 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
 
             _scriptEngineManager = new ScriptEngineManager();
             _defaultScriptEngine = createScriptEngine(_scriptEngineManager);
+            
+            _sortedScriptContextNameList = new ArrayList<>();
 
             //init default global vars ------
             loadDefaultGlobalVars();
@@ -139,10 +145,20 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 try {
                     final String app = sourceManagerEntry.getKey();
                     
+                    /*
                     for(Entry<String, Object> objEntry : sourceManagerEntry.getValue()
                             .getEngine().getBindings(ScriptContext.ENGINE_SCOPE).entrySet()) {
+                            */
+                    for(int i = sourceManagerEntry.getValue().getSortedScriptContextNameList().size() - 1; i >= 0; i--) {
+                        /*
                         final String serviceName = objEntry.getKey();
                         final Object obj = objEntry.getValue();
+                        */
+                        final String serviceName =  sourceManagerEntry.getValue().getSortedScriptContextNameList().get(i);
+                        final Object obj = sourceManagerEntry.getValue().getEngine().get(serviceName); 
+                        if(obj == null) {
+                            continue;
+                        }
                         
                         if(IScriptContext.class.isAssignableFrom(obj.getClass())) {
                             //destroy old one
@@ -181,10 +197,20 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         }
         
         //destroy global objects
-        for(Entry<String, Object> objEntry : _scriptEngineManager.getBindings().entrySet()) {
+        //for(Entry<String, Object> objEntry : _scriptEngineManager.getBindings().entrySet()) {
+        for(int i = _sortedScriptContextNameList.size() - 1; i >= 0; i--) {
             try {
+                /*
                 final String varName = objEntry.getKey();
                 final Object obj = objEntry.getValue();
+                */
+                final String varName = _sortedScriptContextNameList.get(i);
+                final Object obj = _scriptEngineManager.get(varName);
+                
+                if(obj == null) {
+                    continue;
+                }
+                
                 if(destroyJavaObj(obj)) {
                     logger.info("JavaObj destroyed ->"
                             + " app[null] varName[" + varName + "]" 
@@ -344,9 +370,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 oldObj = getScriptSourceManager(app).getEngine().get(varName);
             }
             
+            boolean destroyInvoked = false;
             if(oldObj != null) {
                 try {
                     if(destroyJavaObj(oldObj)) {
+                        destroyInvoked = true;
                         logger.info("JavaObj destroyed ->"
                                 + " app[" + app + "] varName[" + varName + "]" 
                                 );
@@ -368,8 +396,18 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             
             if(isGlobal) {
                 _scriptEngineManager.put(varName, obj);
+                
+                //add into contextOrderList when updating at 1st time
+                if(destroyInvoked) {
+                    _sortedScriptContextNameList.add(varName);
+                }
             } else {
                 getScriptSourceManager(app).getEngine().put(varName, obj);
+                
+                //add into contextOrderList when updating at 1st time
+                if(destroyInvoked) {
+                    getScriptSourceManager(app).getSortedScriptContextNameList().add(varName);
+                }
             }
             
             logger.info(
@@ -495,7 +533,7 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         }
         
         //destroy old one ---------------------------------------------
-        destroyWhenScriptContext(app, serviceName);
+        boolean destroyInvoked = destroyWhenScriptContext(app, serviceName);
 
         //store the jsObj
         final IScriptContext scriptContext = jsObjToInterface((Invocable) engine, jsObj, IScriptContext.class);
@@ -518,8 +556,18 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             //stored
             if(isGlobal) {
                 _scriptEngineManager.put(serviceName, jsObj);
+                
+                //add into contextOrderList when updating at 1st time
+                if(destroyInvoked) {
+                    _sortedScriptContextNameList.add(serviceName);
+                }
             } else {
                 getScriptSourceManager(app).getEngine().put(serviceName, jsObj);
+                
+                //add into contextOrderList when updating at 1st time
+                if(destroyInvoked) {
+                    getScriptSourceManager(app).getSortedScriptContextNameList().add(serviceName);
+                }
             }
         } else {
             if(isGlobal) {
@@ -554,7 +602,13 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                 );
     } 
     
-    private void destroyWhenScriptContext(String app, String serviceName) {
+    /**
+     * 
+     * @param app
+     * @param serviceName
+     * @return true: destroy() has been invoked
+     */
+    private boolean destroyWhenScriptContext(String app, String serviceName) {
         final Object oldJsObj;  
         final Invocable invoke;
         if(isAppEmpty(app)) {
@@ -574,6 +628,7 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                     logger.info("ScriptContext destroyed ->"
                             + " app[" + app + "] serviceName:[" + serviceName + "]" 
                             );
+                    return true;
                 }
             } catch (Throwable e) {
                 logger.error(
@@ -583,6 +638,8 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
                         );
             }
         }
+        
+        return false;
     }
     
     /*
@@ -716,6 +773,8 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
         //key: $serviceName    value: script object
         private final ConcurrentHashMap<String, CompiledScript> _scriptMap = new ConcurrentHashMap<>();
         
+        private final List<String> _sortedScriptContextNameList = new ArrayList<>();        
+        
         public ScriptSourceManager(String app) {
             _engine = createScriptEngine(_scriptEngineManager);
             
@@ -746,6 +805,13 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
             return _scriptMap.get(serviceName);
         }
         
+        public void addScriptContextName(String ctxName) {
+            this._sortedScriptContextNameList.add(ctxName);
+        }
+        
+        public List<String> getSortedScriptContextNameList() {
+            return _sortedScriptContextNameList;
+        }
     }
     
     

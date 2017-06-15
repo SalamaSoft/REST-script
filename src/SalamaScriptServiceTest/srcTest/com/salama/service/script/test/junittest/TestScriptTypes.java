@@ -15,7 +15,6 @@ import org.junit.Test;
 public class TestScriptTypes {
     
 
-    @Test
     public void test_char() {
         try {
             final ScriptEngine engine = createEngine();
@@ -86,6 +85,7 @@ public class TestScriptTypes {
         }
     }
     
+    @Test
     public void test_List() {
         try {
             final ScriptEngine engine = createEngine();
@@ -93,12 +93,15 @@ public class TestScriptTypes {
             testScriptAndPrint(
                     engine, 
                     "var arr = testUtil.testStrArray();"
+                    + "print('arr.length:' + arr.length);"
                     + " arr[1];"
                     );
             
             testScriptAndPrint(
                     engine, 
                     "var list = testUtil.testStrList();"
+                    + "print('list.length:' + list.length);"
+                    + "print('list.size():' + list.size());"
                     + " list[1];"
                     );
         } catch (Throwable e) {
