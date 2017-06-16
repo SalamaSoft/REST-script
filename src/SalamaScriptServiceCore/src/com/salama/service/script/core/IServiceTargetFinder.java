@@ -1,12 +1,11 @@
 package com.salama.service.script.core;
 
-import com.salama.service.core.net.RequestWrapper;
+/**
+ * 
+ * @param <T> Type of request
+ */
+public interface IServiceTargetFinder<T> extends IScriptContext, IServiceNameVerifier {
 
-public interface IServiceTargetFinder extends IScriptContext {
+    ServiceTarget findOut(T request);
 
-    ServiceTarget findOut(RequestWrapper request);
-
-    boolean verifyFormatOfApp(String app);
-    
-    boolean verifyFormatOfServiceName(String serviceName);
 }

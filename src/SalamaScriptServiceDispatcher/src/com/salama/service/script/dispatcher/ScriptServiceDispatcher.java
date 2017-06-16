@@ -5,7 +5,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -31,6 +30,7 @@ import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptContext;
 import com.salama.service.script.core.IScriptService;
 import com.salama.service.script.core.IScriptServiceDispatcher;
+import com.salama.service.script.core.IScriptSourceContainer;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IScriptSourceWatcher;
 import com.salama.service.script.core.IServiceTargetFinder;
@@ -56,6 +56,40 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher {
     //private final String _scriptEngineName;
     private ScriptServiceDispatcherConfig _config;
     private IConfigLocationResolver _configLocationResolver;
+    
+    public static class ScriptSourceContainer implements IScriptSourceContainer {
+
+        @Override
+        public void reload(Reader config, IConfigLocationResolver configLocationResolver) throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public void destroy() {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public String serviceName() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public IScriptSourceWatcher getScriptSourceWatcher() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public CompiledScript findCompiledScript(ServiceTarget target) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+        
+    }
     
     private ScriptEngineManager _scriptEngineManager;
     private ScriptEngine _defaultScriptEngine;

@@ -13,7 +13,7 @@ import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IServiceTargetFinder;
 import com.salama.service.script.core.ServiceTarget;
 
-public class UriServiceTargetFinder implements IServiceTargetFinder {
+public class UriServiceTargetFinder implements IServiceTargetFinder<RequestWrapper> {
     private final static Logger logger = Logger.getLogger(UriServiceTargetFinder.class);
     
     private final static String REGEX_APP = "[a-zA-Z0-9\\-_\\.]+";

@@ -1,19 +1,16 @@
 package com.salama.service.script.core;
 
-import javax.script.CompiledScript;
 import javax.script.ScriptException;
 
-import com.salama.service.core.net.RequestWrapper;
-import com.salama.service.core.net.ResponseWrapper;
+/**
+ * 
+ * @param <ReqT> Type of request
+ * @param <RespT> Type of response
+ */
+public interface IScriptServiceDispatcher<ReqT, RespT> extends IScriptContext {
 
-public interface IScriptServiceDispatcher extends IScriptContext {
-
-    IScriptSourceWatcher getScriptSourceWatcher();
+    IServiceTargetFinder<ReqT> getServiceTargetFinder();
     
-    IServiceTargetFinder getServiceTargetFinder();
-    
-    Object dispatch(RequestWrapper request, ResponseWrapper response) throws ScriptException, NoSuchMethodException;
-    
-    CompiledScript findCompiledScript(ServiceTarget target);
+    Object dispatch(ReqT request, RespT response) throws ScriptException, NoSuchMethodException;
     
 }
