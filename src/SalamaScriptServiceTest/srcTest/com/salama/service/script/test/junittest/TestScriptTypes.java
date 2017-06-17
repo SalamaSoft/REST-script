@@ -70,6 +70,26 @@ public class TestScriptTypes {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void test_tryBlock() {
+        try {
+            final ScriptEngine engine = createEngine();
+
+            Object retVal = testScriptAndPrint(
+                    engine, 
+                    "var TestUtil = Java.type('com.salama.service.script.test.junittest.TestUtil'); \n"
+                    + "  var test = new TestUtil(); \n"
+                    + "  try { \n"
+                    + "     print('test.ymdHms():' + test.ymdHms()); \n"
+                    + "} finally { \n"
+                    + "  test.close(); \n"
+                    + "}\n"
+                    );
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
     
     public void test_staticMethod() {
         try {
@@ -85,7 +105,6 @@ public class TestScriptTypes {
         }
     }
     
-    @Test
     public void test_List() {
         try {
             final ScriptEngine engine = createEngine();

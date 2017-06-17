@@ -1,5 +1,7 @@
 package com.salama.service.script.test.junittest;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -7,8 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TestUtil {
+public class TestUtil implements Closeable {
 
+    @Override
+    public void close() throws IOException {
+        System.out.println("TestUtil close");
+    }
+    
     public String ymdHms() {
         return (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")).format(new Date()); 
     }
