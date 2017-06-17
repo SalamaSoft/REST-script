@@ -1,10 +1,17 @@
 package com.salama.service.script.core;
 
+import java.io.Closeable;
+
 import javax.script.CompiledScript;
 
-public interface IScriptSourceContainer extends IScriptContext {
+/**
+ * Manage those compiled script object
+ * @author XingGu Liu
+ *
+ */
+public interface IScriptSourceContainer extends IScriptSourceWatcher, Closeable {
 
-    IScriptSourceWatcher getScriptSourceWatcher();
+    void init(String scriptEngineName, IServiceNameVerifier serviceNameVerifier, IConfigLocationResolver configLocationResolver);
     
     CompiledScript findCompiledScript(ServiceTarget target);
 
