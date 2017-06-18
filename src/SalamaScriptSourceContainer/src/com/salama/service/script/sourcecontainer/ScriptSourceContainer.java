@@ -374,7 +374,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         final Object jsObj = compiledScript.eval();
         if(jsObj == null) {
             logger.info(
-                    "script source updated."
+                    "script source updated. (null returned by eval())"
                     + " app[" + app + "] serviceName:[null]"
                     + " compiledScript:" + compiledScript
                     );
@@ -382,6 +382,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         }
         
         final IScriptService scriptService = jsObjToInterface((Invocable) engine, jsObj, IScriptService.class);
+        if(scriptService == null) {
+            logger.info(
+                    "script source updated. (not implement IScriptService)"
+                    + " app[" + app + "] serviceName:[null]"
+                    + " compiledScript:" + compiledScript
+                    );
+            return null;
+        }
         String serviceName = scriptService.serviceName();
         if(serviceName == null || serviceName.length() == 0) {
             logger.warn(

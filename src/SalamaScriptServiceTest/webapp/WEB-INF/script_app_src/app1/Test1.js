@@ -16,6 +16,8 @@ Test1 = new (function () {
             result[name] = params[name];
         }
 
+        TestInternalService.run();
+        
         return result;
     };
 
