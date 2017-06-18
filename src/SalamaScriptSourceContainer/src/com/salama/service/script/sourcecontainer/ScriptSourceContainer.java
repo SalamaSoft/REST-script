@@ -165,6 +165,13 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     public CompiledScript findCompiledScript(ServiceTarget target) {
         return getScriptSourceManager(target.app).getCompiledScript(target.serviceName);
     }
+    
+    @Override
+    public void onInitLoadJavaObj(List<InitLoadJavaEntry> initLoadEntries) {
+        for(InitLoadJavaEntry entry : initLoadEntries) {
+            onJavaObjUpdated(entry.getApp(), entry.getVarName(), entry.getObj(), entry.getConfig());
+        }
+    }
 
     @Override
     public void onJavaObjUpdated(String app, String varName, Object obj, Reader config) {
@@ -180,6 +187,13 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     @Override
     public void onJavaObjDeleted(String app, String varName) {
         deleteJavaObj(app, varName);
+    }
+    
+    @Override
+    public void onInitLoadScriptSource(List<InitLoadScriptEntry> initLoadEntries) {
+        for(InitLoadScriptEntry entry : initLoadEntries) {
+            
+        }
     }
     
     @Override
@@ -262,14 +276,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                 _scriptEngineManager.put(varName, obj);
                 
                 //add into contextOrderList when updating at 1st time
-                if(destroyInvoked) {
+                if(!destroyInvoked) {
                     _sortedScriptContextNameList.add(varName);
                 }
             } else {
                 getScriptSourceManager(app).getEngine().put(varName, obj);
                 
                 //add into contextOrderList when updating at 1st time
-                if(destroyInvoked) {
+                if(!destroyInvoked) {
                     getScriptSourceManager(app).getSortedScriptContextNameList().add(varName);
                 }
             }
@@ -430,14 +444,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                 _scriptEngineManager.put(serviceName, jsObj);
                 
                 //add into contextOrderList when updating at 1st time
-                if(destroyInvoked) {
+                if(!destroyInvoked) {
                     _sortedScriptContextNameList.add(serviceName);
                 }
             } else {
                 getScriptSourceManager(app).getEngine().put(serviceName, jsObj);
                 
                 //add into contextOrderList when updating at 1st time
-                if(destroyInvoked) {
+                if(!destroyInvoked) {
                     getScriptSourceManager(app).getSortedScriptContextNameList().add(serviceName);
                 }
             }

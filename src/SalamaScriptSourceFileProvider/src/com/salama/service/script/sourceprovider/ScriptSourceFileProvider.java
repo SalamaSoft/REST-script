@@ -22,6 +22,7 @@ import org.apache.log4j.Logger;
 import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IScriptSourceWatcher;
+import com.salama.service.script.core.IScriptSourceWatcher.InitLoadScriptEntry;
 import com.salama.service.script.sourceprovider.DirWatcher.IWatchEventHandler;
 import com.salama.service.script.sourceprovider.config.ScriptAppSetting;
 import com.salama.service.script.sourceprovider.config.ScriptInitSetting;
@@ -247,13 +248,45 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     };
     
     private void initLoadScriptFiles() {
+        for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
+            List<InitLoadScriptEntry> initLoadEntries = getInitLoadScriptFiles();
+            sourceWatcher.onInitLoadScriptSource(initLoadEntries);
+        }
+    }
+    
+    private List<InitLoadScriptEntry> getInitLoadScriptFiles() {
+        List<InitLoadScriptEntry> initLoadEntries = new ArrayList<>();
+        
         //global script ------
         {
             File[] files = _globalSourceDir.listFiles(_scriptFileFilter);
             if(files != null) {
-                for(File file : files) {
+                List<File> fileList = Arrays.asList(files);
+                //load files defined in ScriptInitSettings 
+                for(ScriptInitSetting initSetting : _config.getGlobalScriptInitSettings()) {
+                    File file = removeFile(fileList, initSetting.getScriptName());
+                    if(file == null || !file.exists()) {
+                        logger.error("App script file not exits. file:" + file.getAbsolutePath());
+                        continue;
+                    }
+                    
                     try {
-                        handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                        //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                        try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                                final Reader config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
+                                ) {
+                            initLoadEntries.add(new InitLoadScriptEntry(null, script, config));
+                        }
+                    } catch (Throwable e) {
+                        logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
+                    }
+                }
+                for(File file : fileList) {
+                    try {
+                        //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                        try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);) {
+                            initLoadEntries.add(new InitLoadScriptEntry(null, script, null));
+                        }
                     } catch (Throwable e) {
                         logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
                     }
@@ -269,9 +302,33 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                 try {
                     File[] files = (new File(_appSourceDir, app)).listFiles(_scriptFileFilter);
                     if(files != null) {
-                        for(File file : files) {
+                        List<File> fileList = Arrays.asList(files);
+                        //load files defined in ScriptInitSettings 
+                        for(ScriptInitSetting initSetting : appSetting.getScriptInitSettings()) {
+                            File file = removeFile(fileList, initSetting.getScriptName());
+                            if(file == null || !file.exists()) {
+                                logger.error("App script file not exits. file:" + file.getAbsolutePath());
+                                continue;
+                            }
+                            
                             try {
-                                handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                                //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                                try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                                        final Reader config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
+                                        ) {
+                                    initLoadEntries.add(new InitLoadScriptEntry(app, script, config));
+                                }
+                            } catch (Throwable e) {
+                                logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
+                            }
+                        }
+                        
+                        for(File file : fileList) {
+                            try {
+                                //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                                try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);) {
+                                    initLoadEntries.add(new InitLoadScriptEntry(app, script, null));
+                                }
                             } catch (Throwable e) {
                                 logger.error("Error occurred in load app script. file:" + file.getAbsolutePath(), e);
                             }
@@ -282,8 +339,23 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                 }
             }
         }
+        
+        return initLoadEntries;
     }
 
+    private static File removeFile(List<File> fileList, String fileName) {
+        int size = fileList.size();
+        for(int i = 0; i < size; i++) {
+            File file = fileList.get(i);
+            
+            if(file.getAbsolutePath().endsWith(fileName)) {
+                return fileList.remove(i);
+            }
+        }
+        
+        return null;
+    }
+    
     private void handleDirWatchEvent(WatchEvent.Kind<?> eventKind, File file) {
         //ignore hidden files
         if(!_scriptFileFilter.accept(file)) {
@@ -297,13 +369,16 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         }
         
         //handle event
+        /*
         final String app = parseapp(file);
         final String scriptName = file.getName();
+        */
+        final ScriptLocation scriptLoc = parseapp(file);
         
         if(eventKind == StandardWatchEventKinds.ENTRY_CREATE
                 || eventKind == StandardWatchEventKinds.ENTRY_MODIFY
                 ) {
-            final ScriptInitSetting scriptInitSetting = _appScriptLocationMap.getScriptInitSetting(app, scriptName); 
+            final ScriptInitSetting scriptInitSetting = _appScriptLocationMap.getScriptInitSetting(scriptLoc._app, scriptLoc._scriptName); 
             for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
                 try {
                     Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
@@ -316,9 +391,9 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                             config = _configLocationResolver.resolveConfigLocation(scriptInitSetting.getConfigLocation());
                         }            
                         try {
-                            String serviceName = sourceWatcher.onScriptSourceUpdated(app, script, config);
+                            String serviceName = sourceWatcher.onScriptSourceUpdated(scriptLoc._app, script, config);
                             if(serviceName != null && serviceName.length() > 0) {
-                                _appScriptLocationMap.setServiceName(app, scriptName, serviceName);
+                                _appScriptLocationMap.setServiceName(scriptLoc._app, scriptLoc._scriptName, serviceName);
                             }
                         } finally {
                             if(config != null) {
@@ -333,12 +408,12 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                 }
             }
         } else if(eventKind == StandardWatchEventKinds.ENTRY_DELETE) {
-            final String serviceName = _appScriptLocationMap.getServiceName(app, scriptName);
+            final String serviceName = _appScriptLocationMap.getServiceName(scriptLoc._app, scriptLoc._scriptName);
             
             if(serviceName != null && serviceName.length() != 0) {
                 for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
                     try {
-                        sourceWatcher.onScriptSourceDeleted(app, serviceName);
+                        sourceWatcher.onScriptSourceDeleted(scriptLoc._app, serviceName);
                     } catch (Throwable e) {
                         logger.error("scriptFile:" + file.getAbsolutePath(), e);
                     }
@@ -397,6 +472,13 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         }
         
         private String toAppScriptLocation(String app, String scriptName) {
+            if(scriptName.charAt(0) == '/') {
+                throw new IllegalArgumentException("ScriptName must not statswith '/'"
+                        + " app:" + app
+                        + " scriptName:" + scriptName
+                        );
+            }
+            
             if(app == null || app.length() == 0) {
                 return APP_NAME_GLOBAL + "/" + scriptName;
             } else {
@@ -410,7 +492,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
      * @param file
      * @return null if global
      */
-    private String parseapp(File file) {
+    private ScriptLocation parseapp(File file) {
         /*
         final File parent = file.getParentFile();
         
@@ -430,12 +512,28 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             String appSrcDir = entry.getValue();
             
             if(file.getAbsolutePath().startsWith(appSrcDir)) {
-                return app;
+                ScriptLocation scriptLoc = new ScriptLocation();
+                scriptLoc._app = app;
+                
+                int begin = appSrcDir.length();
+                if(appSrcDir.charAt(begin - 1) != '/') {
+                    begin ++;
+                }
+                scriptLoc._scriptName = file.getAbsolutePath().substring(begin);
+                return scriptLoc;
             }
         }
         
         if(file.getAbsolutePath().startsWith(getGlobalSourceDir().getAbsolutePath())) {
-            return null;
+            ScriptLocation scriptLoc = new ScriptLocation();
+            scriptLoc._app = null;
+            
+            int begin = getGlobalSourceDir().getAbsolutePath().length();
+            if(getGlobalSourceDir().getAbsolutePath().charAt(begin - 1) != '/') {
+                begin ++;
+            }
+            scriptLoc._scriptName = file.getAbsolutePath().substring(begin);
+            return scriptLoc;
         } else {
             throw new RuntimeException("Invalid script file path: " + file.getAbsolutePath());
         }
@@ -469,6 +567,10 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         
         return str.toString();
     }
-    
+
+    private static class ScriptLocation {
+        public String _app;
+        public String _scriptName;        
+    }
 
 }

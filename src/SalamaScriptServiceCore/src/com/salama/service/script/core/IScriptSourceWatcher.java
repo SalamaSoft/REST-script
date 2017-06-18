@@ -1,10 +1,77 @@
 package com.salama.service.script.core;
 
 import java.io.Reader;
+import java.util.List;
 
 import javax.script.ScriptException;
 
 public interface IScriptSourceWatcher {
+    
+    public static class InitLoadJavaEntry {
+        private String app;
+        private String varName;
+        private Object obj; 
+        private Reader config;
+        
+        public InitLoadJavaEntry(
+                String app, String varName, Object obj, Reader config
+                ) {
+            this.app = app;
+            this.varName = varName;
+            this.obj = obj;
+            this.config = config;
+        }
+        
+        public String getApp() {
+            return app;
+        }
+        public String getVarName() {
+            return varName;
+        }
+        public Object getObj() {
+            return obj;
+        }
+        public Reader getConfig() {
+            return config;
+        }
+        
+    } 
+    
+    public static class InitLoadScriptEntry {
+        private String app;
+        private Reader script;
+        private Reader config;
+        
+        public InitLoadScriptEntry(
+                String app, Reader script, Reader config
+                ) {
+            this.app = app;
+            this.script = script;
+            this.config = config;
+        }
+
+        public String getApp() {
+            return app;
+        }
+
+        public Reader getScript() {
+            return script;
+        }
+
+        public Reader getConfig() {
+            return config;
+        }
+        
+        
+    }
+    
+    
+    /**
+     * This method is invoked when the provider initializing.
+     * The initLoadEntries should be in order same as it in configuration.  
+     * @param scriptEntries
+     */
+    void onInitLoadJavaObj(List<InitLoadJavaEntry> initLoadEntries);
 
     /**
      * If app is not null, the obj will be put into ScriptEngine of the app.
@@ -23,6 +90,13 @@ public interface IScriptSourceWatcher {
      * @param Required. varName
      */
     void onJavaObjDeleted(String app, String varName);
+    
+    /**
+     * This method is invoked when the provider initializing.
+     * The initLoadEntries should be in order same as it in configuration.  
+     * @param scriptEntries
+     */
+    void onInitLoadScriptSource(List<InitLoadScriptEntry> initLoadEntries);
     
     /**
      * This method is invoked when source of script updated.
