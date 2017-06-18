@@ -11,8 +11,10 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
@@ -41,6 +43,8 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     
     private IConfigLocationResolver _configLocationResolver;
     private ScriptSourceFileProviderConfig _config;
+    //key:app       value: source directory of app
+    private Map<String, String> _appSourceDirMap;
     private DirWatcher _dirWatcher;
     private Thread _watchThread;
     private File _globalSourceDir = null;
@@ -83,6 +87,15 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             _appSourceDir = new File(_config.getAppSourceDir());
             if(!_appSourceDir.exists() || !_appSourceDir.isDirectory()) {
                 throw new IOException("AppSourceDir must be an existing directory ->" + _config.getAppSourceDir());
+            }
+            
+            if(_globalSourceDir.getAbsolutePath().startsWith(_appSourceDir.getAbsolutePath())
+                    || _appSourceDir.getAbsolutePath().startsWith(_globalSourceDir.getAbsolutePath())
+                    ) {
+                throw new IOException("GlobalSourceDir and AppSourceDir must be in disjoint directory. ->"
+                        + " appSourceDir:" + _config.getAppSourceDir() 
+                        + " globalSourceDir:" + _config.getGlobalSourceDir()
+                        );
             }
             
             _configLocationResolver = configLocationResolver;
@@ -178,13 +191,17 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     }
     
     private void initDirWatcher() throws IOException {
-        _dirWatcher = new DirWatcher();
+        _appSourceDirMap = new HashMap<>();
         
+        _dirWatcher = new DirWatcher(true);
         _dirWatcher.addDirToWatch(getGlobalSourceDir());
         
         if(_config.getAppSettings() != null) {
             for(ScriptAppSetting appSetting : _config.getAppSettings()) {
-                _dirWatcher.addDirToWatch(getAppSourceDir(appSetting.getApp()));
+                File appSourceDir = getAppSourceDir(appSetting.getApp());
+                
+                _dirWatcher.addDirToWatch(appSourceDir);
+                _appSourceDirMap.put(appSetting.getApp(), appSourceDir.getAbsolutePath());
             }
         }
         
@@ -208,7 +225,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         
         @Override
         public boolean accept(File file) {
-            if(file.isHidden()) {
+            if(file.isHidden() || file.isDirectory()) {
                 return false;
             }
             
@@ -270,10 +287,11 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private void handleDirWatchEvent(WatchEvent.Kind<?> eventKind, File file) {
         //ignore hidden files
         if(!_scriptFileFilter.accept(file)) {
-            logger.info("handleEvent() file ignored ->"
+            logger.info("handleEvent() file ignored. ->"
                     + " eventKind: " + eventKind
                     + " file: " + file.getAbsolutePath()
                     + " file.isHidden: " + file.isHidden()
+                    + " file.isDir: " + file.isDirectory()
                     );
             return;
         }
@@ -393,6 +411,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
      * @return null if global
      */
     private String parseapp(File file) {
+        /*
         final File parent = file.getParentFile();
         
         if(parent.getAbsolutePath().equals(_globalSourceDir.getAbsolutePath())) {
@@ -403,6 +422,22 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             } else {
                 throw new RuntimeException("Invalid script file path: " + file.getAbsolutePath());
             }
+        }
+        */
+        
+        for(Entry<String, String> entry : _appSourceDirMap.entrySet()) {
+            String app = entry.getKey();
+            String appSrcDir = entry.getValue();
+            
+            if(file.getAbsolutePath().startsWith(appSrcDir)) {
+                return app;
+            }
+        }
+        
+        if(file.getAbsolutePath().startsWith(getGlobalSourceDir().getAbsolutePath())) {
+            return null;
+        } else {
+            throw new RuntimeException("Invalid script file path: " + file.getAbsolutePath());
         }
     }
     

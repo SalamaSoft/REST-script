@@ -1,13 +1,12 @@
 Test1 = new (function () {
-    var logger = LoggerUtil.getLogger($getApp() + "/" + "Test1" + ".js");
+    var logger = LoggerUtil.getLogger($getApp() + "/" + "Test2" + ".js");
 
     this.serviceName = function() {
-        return "Test1";
+        return "Test2";
     };
-    
 
     this.test = function(params) {
-        logger.debug("test() ------ params:" + params);
+        logger.debug("test2() ------ params:" + params);
 
         var result = {};
 

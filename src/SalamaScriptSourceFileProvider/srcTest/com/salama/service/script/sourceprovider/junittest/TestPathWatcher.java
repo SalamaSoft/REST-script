@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
@@ -24,10 +23,10 @@ public class TestPathWatcher {
     @Test
     public void test2() {
         try {
-            final DirWatcher dirWatcher = new DirWatcher();
+            final DirWatcher dirWatcher = new DirWatcher(true);
             
             dirWatcher.addDirToWatch(new File("temp"));
-            dirWatcher.addDirToWatch(new File("temp", "a"));
+            //dirWatcher.addDirToWatch(new File("temp", "a"));
             
             
             Thread t = new Thread(new Runnable() {
@@ -58,7 +57,7 @@ public class TestPathWatcher {
             t.start();
             
             
-            Thread.sleep(60L * 1000);
+            Thread.sleep(6000L * 1000);
             t.interrupt();
         } catch (Throwable e) {
             e.printStackTrace();

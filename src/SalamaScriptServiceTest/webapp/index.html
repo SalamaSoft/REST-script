@@ -18,7 +18,7 @@
             }
 
             $.ajax({
-                url: "/test/_sss/app1/Test1.test",
+                url: "/test/_sss/app1/" + $('#serviceTarget').val(),
                 type: "POST",
                 dataType: "text",
                 headers: headers,
@@ -57,6 +57,9 @@
     </select>
 </div>
 <div>
+    <label>Target Service</label>
+    <input type="text" id="serviceTarget" value="Test1.test">
+    <br>
     <input id="btnTest1" type="button" value="Test">
 </div>
 
