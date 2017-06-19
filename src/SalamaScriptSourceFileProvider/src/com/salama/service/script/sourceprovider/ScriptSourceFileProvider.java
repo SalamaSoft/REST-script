@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.ArrayList;
@@ -36,7 +37,8 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private final static Logger logger = Logger.getLogger(ScriptSourceFileProvider.class);
     
     
-    public final static String DEFAULT_CHARSET = "utf-8";
+    public final static String DEFAULT_CHARSET_NAME = "utf-8";
+    public final static Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_CHARSET_NAME);
     
     private final static String APP_NAME_GLOBAL = "$";    
     
@@ -255,13 +257,6 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             } finally {
                 for(InitLoadScriptEntry entry : initLoadEntries) {
                     try {
-                        if(entry.getScript() != null) {
-                            entry.getScript().close();
-                        }
-                    } catch (Throwable e) {
-                        logger.error(null, e);
-                    }
-                    try {
                         if(entry.getConfig() != null) {
                             entry.getConfig().close();
                         }
@@ -294,25 +289,20 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     continue;
                 }
                 
-                Reader script = null;
                 Reader config = null;
                 try {
                     //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
                     
-                    script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
                     config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
                     
                     final int entryNum = (fileIndex++);
                     logger.info("Global script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());                    
-                    initLoadEntries.add(new InitLoadScriptEntry(entryNum, null, script, config));
+                    initLoadEntries.add(new InitLoadScriptEntry(
+                            entryNum, null, 
+                            new TextFile(file, DEFAULT_CHARSET), 
+                            config
+                            ));
                 } catch (Throwable e) {
-                    try {
-                        if(script != null) {
-                            script.close();
-                        }
-                    } catch (Throwable e1) {
-                        logger.error(null, e1);
-                    }
                     try {
                         if(config != null) {
                             config.close();
@@ -327,21 +317,15 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             
             for(File file : fileList) {
                 //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
-                Reader script = null;
                 try {
-                    script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
-                    
                     final int entryNum = (fileIndex++);
                     logger.info("Global script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
-                    initLoadEntries.add(new InitLoadScriptEntry(entryNum, null, script, null));
+                    initLoadEntries.add(new InitLoadScriptEntry(
+                            entryNum, null, 
+                            new TextFile(file, DEFAULT_CHARSET), 
+                            null
+                            ));
                 } catch (Throwable e) {
-                    try {
-                        if(script != null) {
-                            script.close();
-                        }
-                    } catch (Throwable e1) {
-                        logger.error(null, e1);
-                    }
                     logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
                 }
             }
@@ -368,25 +352,20 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                             continue;
                         }
                         
-                        Reader script = null;
                         Reader config = null;
                         try {
                             //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
-                            
-                            script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+
                             config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
                             
                             final int entryNum = (fileIndex++);
                             logger.info("App script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
-                            initLoadEntries.add(new InitLoadScriptEntry(entryNum, app, script, config));
+                            initLoadEntries.add(new InitLoadScriptEntry(
+                                    entryNum, app, 
+                                    new TextFile(file, DEFAULT_CHARSET), 
+                                    config
+                                    ));
                         } catch (Throwable e) {
-                            try {
-                                if(script != null) {
-                                    script.close();
-                                }
-                            } catch (Throwable e1) {
-                                logger.error(null, e1);
-                            }
                             try {
                                 if(config != null) {
                                     config.close();
@@ -400,23 +379,17 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     }
                     
                     for(File file : fileList) {
-                        Reader script = null;
                         try {
                             //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
                             
-                            script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
-
                             final int entryNum = (fileIndex++);
                             logger.info("App script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
-                            initLoadEntries.add(new InitLoadScriptEntry(entryNum, app, script, null));
+                            initLoadEntries.add(new InitLoadScriptEntry(
+                                    entryNum, app, 
+                                    new TextFile(file, DEFAULT_CHARSET), 
+                                    null
+                                    ));
                         } catch (Throwable e) {
-                            try {
-                                if(script != null) {
-                                    script.close();
-                                }
-                            } catch (Throwable e1) {
-                                logger.error(null, e1);
-                            }
                             logger.error("Error occurred in load app script. file:" + file.getAbsolutePath(), e);
                         }
                     }
@@ -493,28 +466,25 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             final ScriptInitSetting scriptInitSetting = _appScriptLocationMap.getScriptInitSetting(scriptLoc._app, scriptLoc._scriptName); 
             for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
                 try {
-                    Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                    Reader config = null;
+                    if(scriptInitSetting != null 
+                            && scriptInitSetting.getConfigLocation() != null
+                            && scriptInitSetting.getConfigLocation().trim().length() != 0
+                            ) {
+                        config = _configLocationResolver.resolveConfigLocation(scriptInitSetting.getConfigLocation());
+                    }            
                     try {
-                        Reader config = null;
-                        if(scriptInitSetting != null 
-                                && scriptInitSetting.getConfigLocation() != null
-                                && scriptInitSetting.getConfigLocation().trim().length() != 0
-                                ) {
-                            config = _configLocationResolver.resolveConfigLocation(scriptInitSetting.getConfigLocation());
-                        }            
-                        try {
-                            String serviceName = sourceWatcher.onScriptSourceUpdated(scriptLoc._app, script, config);
-                            if(serviceName != null && serviceName.length() > 0) {
-                                _appScriptLocationMap.setServiceName(scriptLoc._app, scriptLoc._scriptName, serviceName);
-                            }
-                        } finally {
-                            if(config != null) {
-                                config.close();
-                            }
-                        }                        
+                        String serviceName = sourceWatcher.onScriptSourceUpdated(
+                                scriptLoc._app, new TextFile(file, DEFAULT_CHARSET), config
+                                );
+                        if(serviceName != null && serviceName.length() > 0) {
+                            _appScriptLocationMap.setServiceName(scriptLoc._app, scriptLoc._scriptName, serviceName);
+                        }
                     } finally {
-                        script.close();
-                    }
+                        if(config != null) {
+                            config.close();
+                        }
+                    }                        
                 } catch (Throwable e) {
                     logger.error("scriptFile:" + file.getAbsolutePath(), e);
                 }

@@ -46,12 +46,12 @@ public interface IScriptSourceWatcher {
     public static class InitLoadScriptEntry {
         private int entryNum;
         private String app;
-        private ScriptFile script;
+        private ITextFile script;
         private Reader config;
         
         public InitLoadScriptEntry(
                 int entryNum,
-                String app, ScriptFile script, Reader config
+                String app, ITextFile script, Reader config
                 ) {
             this.entryNum = entryNum;
             this.app = app;
@@ -67,7 +67,7 @@ public interface IScriptSourceWatcher {
             return app;
         }
 
-        public ScriptFile getScript() {
+        public ITextFile getScript() {
             return script;
         }
 
@@ -121,7 +121,7 @@ public interface IScriptSourceWatcher {
      * 
      * @return name of the script
      */
-    String onScriptSourceUpdated(String app, ScriptFile script, Reader config) throws ScriptException;
+    String onScriptSourceUpdated(String app, ITextFile script, Reader config) throws ScriptException;
     
     /**
      * This method is invoked when source of script deleted.

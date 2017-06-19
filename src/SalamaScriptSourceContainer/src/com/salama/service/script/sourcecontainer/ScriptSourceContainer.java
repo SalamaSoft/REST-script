@@ -7,6 +7,7 @@ import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -26,6 +27,7 @@ import com.salama.service.script.core.IScriptContext;
 import com.salama.service.script.core.IScriptService;
 import com.salama.service.script.core.IScriptSourceContainer;
 import com.salama.service.script.core.IServiceNameVerifier;
+import com.salama.service.script.core.ITextFile;
 import com.salama.service.script.core.ServiceTarget;
 
 public class ScriptSourceContainer implements IScriptSourceContainer {
@@ -47,11 +49,36 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
 
     private ScriptEngineManager _scriptEngineManager;
     private ScriptEngine _defaultScriptEngine;
-    private List<String> _sortedScriptContextNameList;
+    //private List<String> _sortedScriptContextNameList;
+    private List<ScriptObjLocation> _scriptContextLocationList;
+    //key: Path of Script       value: ScriptObjLocation
+    private Map<String, ScriptObjLocation> _scriptContextLocationMap;
 
     //key:$app    value:ScriptSourceManager
     private final ConcurrentHashMap<String, ScriptSourceManager> _scriptSourceManagerMap = new ConcurrentHashMap<String, ScriptSourceManager>();
     private final ReentrantLock _lockForScriptSourceManager = new ReentrantLock();
+
+    private static class ScriptObjLocation {
+        private final String app;
+        private final String objName;
+        
+        public ScriptObjLocation(String app, String objName) {
+            this.app = app;
+            this.objName = objName;
+        }
+        
+        @Override
+        public boolean equals(Object obj) {
+            ScriptObjLocation loc2 = (ScriptObjLocation) obj;
+            
+            if(this.app == null) {
+                return (loc2.app == null && this.objName.equals(loc2.objName));
+            } else {
+                return (this.app.equals(loc2.app) && this.objName.equals(loc2.objName));
+            }
+        }
+        
+    }
 
     @Override
     public void init(String scriptEngineName, IServiceNameVerifier serviceNameVerifier, IConfigLocationResolver configLocationResolver) {
@@ -67,7 +94,9 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         _scriptEngineManager = new ScriptEngineManager();
         _defaultScriptEngine = createScriptEngine(_scriptEngineManager);
         
-        _sortedScriptContextNameList = new ArrayList<>();
+        //_sortedScriptContextNameList = new ArrayList<>();
+        _scriptContextLocationList = new ArrayList<>();
+        _scriptContextLocationMap = new ConcurrentHashMap<>();
 
         //init default global vars ------
         loadDefaultGlobalVars();
@@ -75,21 +104,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
 
     @Override
     public void close() throws IOException {
+        /*
         //destroy engine Objects
         try {
             for(Entry<String, ScriptSourceManager> sourceManagerEntry : _scriptSourceManagerMap.entrySet()) {
                 try {
                     final String app = sourceManagerEntry.getKey();
                     
-                    /*
-                    for(Entry<String, Object> objEntry : sourceManagerEntry.getValue()
-                            .getEngine().getBindings(ScriptContext.ENGINE_SCOPE).entrySet()) {
-                            */
                     for(int i = sourceManagerEntry.getValue().getSortedScriptContextNameList().size() - 1; i >= 0; i--) {
-                        /*
-                        final String serviceName = objEntry.getKey();
-                        final Object obj = objEntry.getValue();
-                        */
                         final String serviceName =  sourceManagerEntry.getValue().getSortedScriptContextNameList().get(i);
                         final Object obj = sourceManagerEntry.getValue().getEngine().get(serviceName); 
                         if(obj == null) {
@@ -136,10 +158,6 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //for(Entry<String, Object> objEntry : _scriptEngineManager.getBindings().entrySet()) {
         for(int i = _sortedScriptContextNameList.size() - 1; i >= 0; i--) {
             try {
-                /*
-                final String varName = objEntry.getKey();
-                final Object obj = objEntry.getValue();
-                */
                 final String varName = _sortedScriptContextNameList.get(i);
                 final Object obj = _scriptEngineManager.get(varName);
                 
@@ -159,7 +177,21 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             } catch(Throwable e) {
                 logger.error(null, e);
             }
-        } 
+        }
+        */
+        
+        for(int i = _scriptContextLocationList.size() - 1; i >= 0; i--) {
+            ScriptObjLocation loc = _scriptContextLocationList.get(i);
+            
+            try {
+                IScriptContext scriptCtx = getScriptContextByLocation(loc);
+                if(scriptCtx != null) {
+                    scriptCtx.destroy();
+                }
+            } catch(Throwable e) {
+                logger.error(null, e);
+            } 
+        }
     }
 
     @Override
@@ -197,7 +229,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //compile only
         for(InitLoadScriptEntry entry : initLoadEntries) {
             try {
-                ScriptCompileResult compileResult = compileScriptSource(
+                ScriptCompileResult compileResult = compileNoneScriptContext(
                         entry.getApp(),  entry.getScript(), entry.getConfig()
                         );
                 compileResultList.add(compileResult);
@@ -216,7 +248,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //reload only
         for(ScriptCompileResult compileResult : compileResultList) {
             try {
-                reloadScriptContext(compileResult);
+                compileScriptContext(compileResult);
             } catch (Throwable e) {
                 logger.error(null, e);
             }
@@ -224,7 +256,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     }
     
     @Override
-    public String onScriptSourceUpdated(String app, Reader script, Reader config) throws ScriptException {
+    public String onScriptSourceUpdated(String app, ITextFile script, Reader config) throws ScriptException {
         try {
             String serviceName = updateScriptSource(app, script, config);
             logger.info("onScriptSourceUpdated() -> app:" + app + " serviceName:" + serviceName);
@@ -238,6 +270,54 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     public void onScriptSourceDeleted(String app, String serviceName) {
         deleteScriptSource(app, serviceName);
         logger.info("onScriptSourceDeleted() -> app:" + app + " serviceName:" + serviceName);
+    }
+    
+    private boolean addScriptContextLocation(String app, String objName) {
+        ScriptObjLocation loc = new ScriptObjLocation(app, objName);
+        
+        if(_scriptContextLocationList.contains(loc)) {
+            return false;
+        }
+        
+        _scriptContextLocationList.add(loc);
+        return true;
+    }
+    
+    private IScriptContext getScriptContextByLocation(ScriptObjLocation loc) {
+        Object obj;
+        ScriptEngine engine;
+        if(loc.app == null || loc.app.trim().length() == 0) {
+            obj = _scriptEngineManager.get(loc.objName);
+            engine = _defaultScriptEngine;
+        } else {
+            engine = getScriptSourceManager(loc.app).getEngine();
+            obj = engine.get(loc.objName);
+        }
+        if(obj == null) {
+            return null;
+        }
+        
+        if(IScriptContext.class.isAssignableFrom(obj.getClass())) {
+            return (IScriptContext) obj;
+        } else {
+            IScriptContext scriptContext = null;
+            try {
+                scriptContext = jsObjToInterface(
+                        (Invocable)engine, 
+                        obj, 
+                        IScriptContext.class
+                        );
+                return scriptContext;
+            } catch (Throwable e) {
+                logger.info(
+                        "getScriptContextByLocation() "
+                        + " app[" + loc.app + "] serviceName[" + loc.objName + "]"
+                        + " is not a IScriptContext",
+                        e
+                        );
+                return null;
+            }
+        }
     }
     
     private void loadDefaultGlobalVars() {
@@ -302,17 +382,25 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             if(isGlobal) {
                 _scriptEngineManager.put(varName, obj);
                 
+                /*
                 //add into contextOrderList when updating at 1st time
                 if(!destroyInvoked) {
                     _sortedScriptContextNameList.add(varName);
                 }
+                */
             } else {
                 getScriptSourceManager(app).getEngine().put(varName, obj);
                 
+                /*
                 //add into contextOrderList when updating at 1st time
                 if(!destroyInvoked) {
                     getScriptSourceManager(app).getSortedScriptContextNameList().add(varName);
                 }
+                */
+            }
+
+            if(IScriptContext.class.isAssignableFrom(obj.getClass())) {
+                addScriptContextLocation(app, varName);
             }
             
             logger.info(
@@ -422,9 +510,23 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         }
     }
     
-    private ScriptCompileResult compileScriptSource(
-            String app, Reader script, Reader config
+    private ScriptCompileResult compileNoneScriptContext(
+            String app, ITextFile script, Reader config
             ) throws ScriptException, IOException {
+        //destroy the ScriptContext before recompile
+        if(_scriptContextLocationMap.get(script.getPath()) != null) {
+            IScriptContext scriptContex = getScriptContextByLocation(
+                    _scriptContextLocationMap.get(script.getPath())
+                    );
+            if(scriptContex != null) {
+                try {
+                    scriptContex.destroy();
+                } catch (Throwable e) {
+                    logger.error(null, e);
+                }
+            }
+        }
+        
         final ScriptEngine engine;
         final boolean isGlobal;
         if(isAppEmpty(app)) {
@@ -439,7 +541,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             isGlobal = false;
         }
         
-        final String scriptStr = readAsString(script);
+        final String scriptStr = readTextFile(script);
         final CompiledScript compiledScript;
         final Object jsObj;
         try {
@@ -474,6 +576,8 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                         //stored as a service
                         getScriptSourceManager(app).putCompiledScript(serviceName, compiledScript);
                     }
+                } else {
+                    _scriptContextLocationMap.put(script.getPath(), new ScriptObjLocation(app, serviceName));
                 }
             }
         }
@@ -485,7 +589,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                 );
     }
     
-    private boolean reloadScriptContext(final ScriptCompileResult compileResult) {
+    private boolean compileScriptContext(final ScriptCompileResult compileResult) {
         if(compileResult.jsObj == null) {
             return false;
         }
@@ -493,9 +597,8 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             return false;
         }
         
-        
-        //destroy old one ---------------------------------------------
-        boolean destroyInvoked = destroyWhenScriptContext(compileResult.app, compileResult.serviceName);
+        //destroyed before recompile
+        //boolean destroyInvoked = destroyWhenScriptContext(compileResult.app, compileResult.serviceName);
 
         //store the jsObj
         final IScriptContext scriptContext = jsObjToInterface((Invocable) compileResult.engine, compileResult.jsObj, IScriptContext.class);
@@ -519,18 +622,23 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             if(compileResult.isGlobal) {
                 _scriptEngineManager.put(compileResult.serviceName, compileResult.jsObj);
                 
+                /*
                 //add into contextOrderList when updating at 1st time
                 if(!destroyInvoked) {
                     _sortedScriptContextNameList.add(compileResult.serviceName);
                 }
+                */
             } else {
                 getScriptSourceManager(compileResult.app).getEngine().put(compileResult.serviceName, compileResult.jsObj);
                 
+                /*
                 //add into contextOrderList when updating at 1st time
                 if(!destroyInvoked) {
                     getScriptSourceManager(compileResult.app).getSortedScriptContextNameList().add(compileResult.serviceName);
                 }
+                */
             }
+            addScriptContextLocation(compileResult.app, compileResult.serviceName);
             
             return true;
         } else {
@@ -539,9 +647,9 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         }
     }
     private String updateScriptSource(
-            String app, Reader script, Reader config
+            String app, ITextFile script, Reader config
             ) throws ScriptException, NoSuchMethodException, IOException {
-        final ScriptCompileResult compileResult = compileScriptSource(app, script, config);
+        final ScriptCompileResult compileResult = compileNoneScriptContext(app, script, config);
         logger.info(
                 "script source compiled."
                 + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
@@ -567,7 +675,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             return null;
         }
         
-        reloadScriptContext(compileResult);
+        compileScriptContext(compileResult);
 
         logger.info(
                 "script source updated."
@@ -700,6 +808,11 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         return (app == null || app.length() == 0);
     }
     
+    protected static String readTextFile(ITextFile textFile) throws IOException {
+        try(final Reader reader = textFile.getReader();) {
+            return readAsString(reader);
+        }
+    }
     protected static String readAsString(Reader reader) throws IOException {
         StringBuilder str = new StringBuilder();
         char[] cBuf = new char[512];
@@ -752,7 +865,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //key: $serviceName    value: script object
         private final ConcurrentHashMap<String, CompiledScript> _scriptMap = new ConcurrentHashMap<>();
         
-        private final List<String> _sortedScriptContextNameList = new ArrayList<>();        
+        //private final List<String> _sortedScriptContextNameList = new ArrayList<>();        
         
         public ScriptSourceManager(String app) {
             _engine = createScriptEngine(_scriptEngineManager);
@@ -784,6 +897,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             return _scriptMap.get(serviceName);
         }
         
+        /*
         public void addScriptContextName(String ctxName) {
             this._sortedScriptContextNameList.add(ctxName);
         }
@@ -791,6 +905,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         public List<String> getSortedScriptContextNameList() {
             return _sortedScriptContextNameList;
         }
+        */
     }
     
     
