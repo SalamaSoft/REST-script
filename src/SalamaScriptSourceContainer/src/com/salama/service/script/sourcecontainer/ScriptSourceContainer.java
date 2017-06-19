@@ -191,8 +191,27 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     
     @Override
     public void onInitLoadScriptSource(List<InitLoadScriptEntry> initLoadEntries) {
+        List<ScriptCompileResult> compileResultList = new ArrayList<>();
+        
+        //compile only
         for(InitLoadScriptEntry entry : initLoadEntries) {
-            
+            try {
+                ScriptCompileResult compileResult = compileScriptSource(
+                        entry.getApp(), entry.getScript(), entry.getConfig()
+                        );
+                compileResultList.add(compileResult);
+            } catch (Throwable e) {
+                logger.error(null, e);
+            }
+        }
+        
+        //reload only
+        for(ScriptCompileResult compileResult : compileResultList) {
+            try {
+                reloadScriptContext(compileResult);
+            } catch (Throwable e) {
+                logger.error(null, e);
+            }
         }
     }
     
@@ -369,7 +388,35 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         return false;
     }
     
-    private String updateScriptSource(String app, Reader script, Reader config) throws ScriptException, NoSuchMethodException {
+    private static class ScriptCompileResult {
+        final String app;
+        final Reader config;
+        
+        final ScriptEngine engine;
+        final boolean isGlobal;
+        
+        final CompiledScript compiledScript;
+        final Object jsObj; 
+        final String serviceName;
+        
+        public ScriptCompileResult(
+                String app, Reader config, ScriptEngine engine, boolean isGlobal,
+                CompiledScript compiledScript, Object jsObj,
+                String serviceName
+                ) {
+            this.app = app;
+            this.config = config;
+            this.engine = engine;
+            this.isGlobal = isGlobal;
+            this.compiledScript = compiledScript;
+            this.jsObj = jsObj;
+            this.serviceName = serviceName;
+        }
+    }
+    
+    private ScriptCompileResult compileScriptSource(
+            String app, Reader script, Reader config
+            ) throws ScriptException {
         final ScriptEngine engine;
         final boolean isGlobal;
         if(isAppEmpty(app)) {
@@ -386,92 +433,132 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         
         final CompiledScript compiledScript = ((Compilable) engine).compile(script);
         final Object jsObj = compiledScript.eval();
-        if(jsObj == null) {
-            logger.info(
-                    "script source updated. (null returned by eval())"
-                    + " app[" + app + "] serviceName:[null]"
-                    + " compiledScript:" + compiledScript
-                    );
-            return null;
+        String serviceName = null;
+        
+        if(jsObj != null) {
+            final IScriptService scriptService = jsObjToInterface((Invocable) engine, jsObj, IScriptService.class);
+            if(scriptService == null) {
+                logger.info(
+                        "script source compiled. (not implement IScriptService)"
+                        + " app[" + app + "] serviceName:[null]"
+                        + " compiledScript:" + compiledScript
+                        );
+                serviceName = null;
+            } else {
+                serviceName = scriptService.serviceName();
+            }
+            
+            if(serviceName != null && serviceName.length() > 0) {
+                if(!_serviceNameVerifier.verifyFormatOfServiceName(serviceName)) {
+                    throw new RuntimeException("Invalid format of serviceName:" + serviceName);
+                }
+                
+                final IScriptContext scriptContext = jsObjToInterface((Invocable) engine, jsObj, IScriptContext.class);
+                if(scriptContext == null) {
+                    //Not ScriptContext
+                    if(isGlobal) {
+                        _scriptEngineManager.put(serviceName, jsObj);
+                    } else {
+                        //stored as a service
+                        getScriptSourceManager(app).putCompiledScript(serviceName, compiledScript);
+                    }
+                }
+            }
         }
         
-        final IScriptService scriptService = jsObjToInterface((Invocable) engine, jsObj, IScriptService.class);
-        if(scriptService == null) {
-            logger.info(
-                    "script source updated. (not implement IScriptService)"
-                    + " app[" + app + "] serviceName:[null]"
-                    + " compiledScript:" + compiledScript
-                    );
-            return null;
+        return new ScriptCompileResult(
+                app, config, engine, isGlobal, 
+                compiledScript, jsObj,
+                serviceName
+                );
+    }
+    
+    private boolean reloadScriptContext(final ScriptCompileResult compileResult) {
+        if(compileResult.jsObj == null) {
+            return false;
         }
-        String serviceName = scriptService.serviceName();
-        if(serviceName == null || serviceName.length() == 0) {
-            logger.warn(
-                    "script source updated."
-                    + " app[" + app + "] serviceName:[" + serviceName + "]"
-                    + " compiledScript:" + compiledScript
-                    );
-            return null;
+        if(compileResult.serviceName == null || compileResult.serviceName.length() == 0) {
+            return false;
         }
         
-        if(!_serviceNameVerifier.verifyFormatOfServiceName(serviceName)) {
-            throw new RuntimeException("Invalid format of serviceName:" + serviceName);
-        }
         
         //destroy old one ---------------------------------------------
-        boolean destroyInvoked = destroyWhenScriptContext(app, serviceName);
+        boolean destroyInvoked = destroyWhenScriptContext(compileResult.app, compileResult.serviceName);
 
         //store the jsObj
-        final IScriptContext scriptContext = jsObjToInterface((Invocable) engine, jsObj, IScriptContext.class);
+        final IScriptContext scriptContext = jsObjToInterface((Invocable) compileResult.engine, compileResult.jsObj, IScriptContext.class);
         if(scriptContext != null) {
             //A ScriptContext will not be exposed as a service
             //reload
             try {
-                scriptContext.reload(config, _configLocationResolver);
+                scriptContext.reload(compileResult.config, _configLocationResolver);
                 logger.info("ScriptContext reloaded ->"
-                        + " app[" + app + "] serviceName:[" + serviceName + "]" 
+                        + " app[" + compileResult.app + "] serviceName:[" + compileResult.serviceName + "]" 
                         );
             } catch (Throwable e) {
                 logger.error(
                         "Error occurred in reloading ScriptContext! ->"
-                        + " app[" + app + "] serviceName:[" + serviceName + "]", 
+                        + " app[" + compileResult.app + "] serviceName:[" + compileResult.serviceName + "]", 
                         e
                         );
             }
             
             //stored
-            if(isGlobal) {
-                _scriptEngineManager.put(serviceName, jsObj);
+            if(compileResult.isGlobal) {
+                _scriptEngineManager.put(compileResult.serviceName, compileResult.jsObj);
                 
                 //add into contextOrderList when updating at 1st time
                 if(!destroyInvoked) {
-                    _sortedScriptContextNameList.add(serviceName);
+                    _sortedScriptContextNameList.add(compileResult.serviceName);
                 }
             } else {
-                getScriptSourceManager(app).getEngine().put(serviceName, jsObj);
+                getScriptSourceManager(compileResult.app).getEngine().put(compileResult.serviceName, compileResult.jsObj);
                 
                 //add into contextOrderList when updating at 1st time
                 if(!destroyInvoked) {
-                    getScriptSourceManager(app).getSortedScriptContextNameList().add(serviceName);
+                    getScriptSourceManager(compileResult.app).getSortedScriptContextNameList().add(compileResult.serviceName);
                 }
             }
+            
+            return true;
         } else {
-            if(isGlobal) {
-                _scriptEngineManager.put(serviceName, jsObj);
-            } else {
-                //stored as a service
-                getScriptSourceManager(app).putCompiledScript(scriptService.serviceName(), compiledScript);
-            }
+            
+            return false;
         }
+    }
+    private String updateScriptSource(
+            String app, Reader script, Reader config
+            ) throws ScriptException, NoSuchMethodException {
+        final ScriptCompileResult compileResult = compileScriptSource(app, script, config);
+        
+        if(compileResult.jsObj == null) {
+            logger.info(
+                    "script source updated. (null returned by eval())"
+                    + " app[" + app + "] serviceName:[null]"
+                    + " compiledScript:" + compileResult.compiledScript
+                    );
+            return null;
+        }
+        
+        if(compileResult.serviceName == null || compileResult.serviceName.length() == 0) {
+            logger.warn(
+                    "script source updated."
+                    + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
+                    + " compiledScript:" + compileResult.compiledScript
+                    );
+            return null;
+        }
+        
+        reloadScriptContext(compileResult);
 
         logger.info(
                 "script source updated."
-                + " app[" + app + "] serviceName:[" + serviceName + "]"
-                + " compiledScript:" + compiledScript
+                + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
+                + " compiledScript:" + compileResult.compiledScript
                 );
-        return serviceName;
+        return compileResult.serviceName;
     }
-    
+        
     private void deleteScriptSource(String app, String serviceName) {
         destroyWhenScriptContext(app, serviceName);
         
