@@ -8,20 +8,26 @@ import javax.script.ScriptException;
 public interface IScriptSourceWatcher {
     
     public static class InitLoadJavaEntry {
+        private int entryNum;
         private String app;
         private String varName;
         private Object obj; 
         private Reader config;
         
         public InitLoadJavaEntry(
+                int entryNum,
                 String app, String varName, Object obj, Reader config
                 ) {
+            this.entryNum = entryNum;
             this.app = app;
             this.varName = varName;
             this.obj = obj;
             this.config = config;
         }
         
+        public int getEntryNum() {
+            return entryNum;
+        }
         public String getApp() {
             return app;
         }
@@ -34,27 +40,34 @@ public interface IScriptSourceWatcher {
         public Reader getConfig() {
             return config;
         }
-        
+
     } 
     
     public static class InitLoadScriptEntry {
+        private int entryNum;
         private String app;
-        private Reader script;
+        private ScriptFile script;
         private Reader config;
         
         public InitLoadScriptEntry(
-                String app, Reader script, Reader config
+                int entryNum,
+                String app, ScriptFile script, Reader config
                 ) {
+            this.entryNum = entryNum;
             this.app = app;
             this.script = script;
             this.config = config;
         }
 
+        public int getEntryNum() {
+            return entryNum;
+        }
+        
         public String getApp() {
             return app;
         }
 
-        public Reader getScript() {
+        public ScriptFile getScript() {
             return script;
         }
 
@@ -108,7 +121,7 @@ public interface IScriptSourceWatcher {
      * 
      * @return name of the script
      */
-    String onScriptSourceUpdated(String app, Reader script, Reader config) throws ScriptException;
+    String onScriptSourceUpdated(String app, ScriptFile script, Reader config) throws ScriptException;
     
     /**
      * This method is invoked when source of script deleted.

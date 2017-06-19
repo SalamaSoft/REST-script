@@ -250,46 +250,99 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private void initLoadScriptFiles() {
         for(IScriptSourceWatcher sourceWatcher : _scriptWatchers) {
             List<InitLoadScriptEntry> initLoadEntries = getInitLoadScriptFiles();
-            sourceWatcher.onInitLoadScriptSource(initLoadEntries);
+            try {
+                sourceWatcher.onInitLoadScriptSource(initLoadEntries);
+            } finally {
+                for(InitLoadScriptEntry entry : initLoadEntries) {
+                    try {
+                        if(entry.getScript() != null) {
+                            entry.getScript().close();
+                        }
+                    } catch (Throwable e) {
+                        logger.error(null, e);
+                    }
+                    try {
+                        if(entry.getConfig() != null) {
+                            entry.getConfig().close();
+                        }
+                    } catch (Throwable e) {
+                        logger.error(null, e);
+                    }
+                }
+            }
         }
     }
     
     private List<InitLoadScriptEntry> getInitLoadScriptFiles() {
         List<InitLoadScriptEntry> initLoadEntries = new ArrayList<>();
+        int fileIndex = 0;
         
         //global script ------
         {
-            File[] files = _globalSourceDir.listFiles(_scriptFileFilter);
-            if(files != null) {
-                List<File> fileList = Arrays.asList(files);
-                //load files defined in ScriptInitSettings 
-                for(ScriptInitSetting initSetting : _config.getGlobalScriptInitSettings()) {
-                    File file = removeFile(fileList, initSetting.getScriptName());
-                    if(file == null || !file.exists()) {
-                        logger.error("App script file not exits. file:" + file.getAbsolutePath());
-                        continue;
+            List<File> fileList = new ArrayList<>();
+            listFilesRecursively(fileList, _globalSourceDir, _scriptFileFilter);
+            
+            //load files defined in ScriptInitSettings 
+            for(ScriptInitSetting initSetting : _config.getGlobalScriptInitSettings()) {
+                File file = removeFile(fileList, initSetting.getScriptName());
+                if(file == null) {
+                    logger.error("Global script file not exits. scriptName:" + initSetting.getScriptName());
+                    continue;
+                }
+                if(!file.exists()) {
+                    logger.error("Global script file not exits. file:" + file.getAbsolutePath());
+                    continue;
+                }
+                
+                Reader script = null;
+                Reader config = null;
+                try {
+                    //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                    
+                    script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                    config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
+                    
+                    final int entryNum = (fileIndex++);
+                    logger.info("Global script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());                    
+                    initLoadEntries.add(new InitLoadScriptEntry(entryNum, null, script, config));
+                } catch (Throwable e) {
+                    try {
+                        if(script != null) {
+                            script.close();
+                        }
+                    } catch (Throwable e1) {
+                        logger.error(null, e1);
+                    }
+                    try {
+                        if(config != null) {
+                            config.close();
+                        }
+                    } catch (Throwable e1) {
+                        logger.error(null, e1);
                     }
                     
-                    try {
-                        //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
-                        try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
-                                final Reader config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
-                                ) {
-                            initLoadEntries.add(new InitLoadScriptEntry(null, script, config));
-                        }
-                    } catch (Throwable e) {
-                        logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
-                    }
+                    logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
                 }
-                for(File file : fileList) {
+            }
+            
+            for(File file : fileList) {
+                //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                Reader script = null;
+                try {
+                    script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                    
+                    final int entryNum = (fileIndex++);
+                    logger.info("Global script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
+                    initLoadEntries.add(new InitLoadScriptEntry(entryNum, null, script, null));
+                } catch (Throwable e) {
                     try {
-                        //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
-                        try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);) {
-                            initLoadEntries.add(new InitLoadScriptEntry(null, script, null));
+                        if(script != null) {
+                            script.close();
                         }
-                    } catch (Throwable e) {
-                        logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
+                    } catch (Throwable e1) {
+                        logger.error(null, e1);
                     }
+                    logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
                 }
             }
         }
@@ -300,38 +353,71 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                 String app = appSetting.getApp();
                 
                 try {
-                    File[] files = (new File(_appSourceDir, app)).listFiles(_scriptFileFilter);
-                    if(files != null) {
-                        List<File> fileList = Arrays.asList(files);
-                        //load files defined in ScriptInitSettings 
-                        for(ScriptInitSetting initSetting : appSetting.getScriptInitSettings()) {
-                            File file = removeFile(fileList, initSetting.getScriptName());
-                            if(file == null || !file.exists()) {
-                                logger.error("App script file not exits. file:" + file.getAbsolutePath());
-                                continue;
-                            }
-                            
-                            try {
-                                //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
-                                try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
-                                        final Reader config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
-                                        ) {
-                                    initLoadEntries.add(new InitLoadScriptEntry(app, script, config));
-                                }
-                            } catch (Throwable e) {
-                                logger.error("Error occurred in load global script. file:" + file.getAbsolutePath(), e);
-                            }
+                    List<File> fileList = new ArrayList<>();
+                    listFilesRecursively(fileList, new File(_appSourceDir, app), _scriptFileFilter);
+                    
+                    //load files defined in ScriptInitSettings 
+                    for(ScriptInitSetting initSetting : appSetting.getScriptInitSettings()) {
+                        File file = removeFile(fileList, initSetting.getScriptName());
+                        if(file == null) {
+                            logger.error("App script file not exits. scriptName:" + initSetting.getScriptName());
+                            continue;
+                        }
+                        if(!file.exists()) {
+                            logger.error("App script file not exits. file:" + file.getAbsolutePath());
+                            continue;
                         }
                         
-                        for(File file : fileList) {
+                        Reader script = null;
+                        Reader config = null;
+                        try {
+                            //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                            
+                            script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+                            config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
+                            
+                            final int entryNum = (fileIndex++);
+                            logger.info("App script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
+                            initLoadEntries.add(new InitLoadScriptEntry(entryNum, app, script, config));
+                        } catch (Throwable e) {
                             try {
-                                //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
-                                try(final Reader script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);) {
-                                    initLoadEntries.add(new InitLoadScriptEntry(app, script, null));
+                                if(script != null) {
+                                    script.close();
                                 }
-                            } catch (Throwable e) {
-                                logger.error("Error occurred in load app script. file:" + file.getAbsolutePath(), e);
+                            } catch (Throwable e1) {
+                                logger.error(null, e1);
                             }
+                            try {
+                                if(config != null) {
+                                    config.close();
+                                }
+                            } catch (Throwable e1) {
+                                logger.error(null, e1);
+                            }
+                            
+                            logger.error("Error occurred in load app script. file:" + file.getAbsolutePath(), e);
+                        }
+                    }
+                    
+                    for(File file : fileList) {
+                        Reader script = null;
+                        try {
+                            //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                            
+                            script = new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET);
+
+                            final int entryNum = (fileIndex++);
+                            logger.info("App script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
+                            initLoadEntries.add(new InitLoadScriptEntry(entryNum, app, script, null));
+                        } catch (Throwable e) {
+                            try {
+                                if(script != null) {
+                                    script.close();
+                                }
+                            } catch (Throwable e1) {
+                                logger.error(null, e1);
+                            }
+                            logger.error("Error occurred in load app script. file:" + file.getAbsolutePath(), e);
                         }
                     }
                 } catch (Throwable e) {
@@ -342,12 +428,38 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         
         return initLoadEntries;
     }
+    
+    private static void listFilesRecursively(
+            final List<File> result, final File dir, final FileFilter filter
+            ) {
+        File[] files = dir.listFiles(filter);
+        if(files != null && files.length > 0) {
+            result.addAll(Arrays.asList(files));
+        }
+        
+        //sub dirs 
+        File[] subDirs = dir.listFiles(new FileFilter() {
+            
+            @Override
+            public boolean accept(File file) {
+                return file.isDirectory() && file.exists();
+            }
+        });
+        if(subDirs == null || subDirs.length == 0) {
+            return;
+        }
+        
+        for(File subDir : subDirs) {
+            listFilesRecursively(result, subDir, filter);
+        }
+    }
 
     private static File removeFile(List<File> fileList, String fileName) {
         int size = fileList.size();
         for(int i = 0; i < size; i++) {
             File file = fileList.get(i);
             
+            //logger.debug("removeFile() -- file:" + file.getAbsolutePath() + " matchName:" + fileName);
             if(file.getAbsolutePath().endsWith(fileName)) {
                 return fileList.remove(i);
             }

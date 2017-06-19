@@ -3,6 +3,7 @@ package com.salama.service.script.sourcecontainer;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,9 +198,16 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         for(InitLoadScriptEntry entry : initLoadEntries) {
             try {
                 ScriptCompileResult compileResult = compileScriptSource(
-                        entry.getApp(), entry.getScript(), entry.getConfig()
+                        entry.getApp(),  entry.getScript(), entry.getConfig()
                         );
                 compileResultList.add(compileResult);
+                
+                logger.info(
+                        "script source compiled. script[" + entry.getEntryNum() + "]" 
+                        + " app[" + entry.getApp() + "] serviceName:[" + compileResult.serviceName + "]"
+                        + " compiledScript:" + compileResult.compiledScript
+                        + " jsObj:" + compileResult.jsObj
+                        );
             } catch (Throwable e) {
                 logger.error(null, e);
             }
@@ -221,7 +229,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             String serviceName = updateScriptSource(app, script, config);
             logger.info("onScriptSourceUpdated() -> app:" + app + " serviceName:" + serviceName);
             return serviceName;
-        } catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException | IOException e) {
             throw new RuntimeException("Error in updateScriptSource!", e);
         }
     }
@@ -416,7 +424,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     
     private ScriptCompileResult compileScriptSource(
             String app, Reader script, Reader config
-            ) throws ScriptException {
+            ) throws ScriptException, IOException {
         final ScriptEngine engine;
         final boolean isGlobal;
         if(isAppEmpty(app)) {
@@ -431,18 +439,22 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             isGlobal = false;
         }
         
-        final CompiledScript compiledScript = ((Compilable) engine).compile(script);
-        final Object jsObj = compiledScript.eval();
+        final String scriptStr = readAsString(script);
+        final CompiledScript compiledScript;
+        final Object jsObj;
+        try {
+            compiledScript = ((Compilable) engine).compile(scriptStr);
+            jsObj = compiledScript.eval();
+        } catch (ScriptException e) {
+            logger.error("Error occurred in compiling script:\n" + scriptStr, e);
+            throw e;
+        }
+        
         String serviceName = null;
         
         if(jsObj != null) {
             final IScriptService scriptService = jsObjToInterface((Invocable) engine, jsObj, IScriptService.class);
             if(scriptService == null) {
-                logger.info(
-                        "script source compiled. (not implement IScriptService)"
-                        + " app[" + app + "] serviceName:[null]"
-                        + " compiledScript:" + compiledScript
-                        );
                 serviceName = null;
             } else {
                 serviceName = scriptService.serviceName();
@@ -528,8 +540,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     }
     private String updateScriptSource(
             String app, Reader script, Reader config
-            ) throws ScriptException, NoSuchMethodException {
+            ) throws ScriptException, NoSuchMethodException, IOException {
         final ScriptCompileResult compileResult = compileScriptSource(app, script, config);
+        logger.info(
+                "script source compiled."
+                + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
+                + " compiledScript:" + compileResult.compiledScript
+                + " jsObj:" + compileResult.jsObj
+                );
         
         if(compileResult.jsObj == null) {
             logger.info(
@@ -680,6 +698,31 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
 
     private static boolean isAppEmpty(String app) {
         return (app == null || app.length() == 0);
+    }
+    
+    protected static String readAsString(Reader reader) throws IOException {
+        StringBuilder str = new StringBuilder();
+        char[] cBuf = new char[512];
+
+        int bufLen = cBuf.length;
+        int readLen;
+        while(true) {
+            readLen = reader.read(cBuf, 0, bufLen);
+
+            if(readLen < 0) {
+                break;
+            }
+
+            if(readLen > 0) {
+                str.append(cBuf, 0, readLen);
+            }
+        }
+
+        return str.toString();
+    }
+    
+    protected static Reader readerWrapString(String str) {
+        return new StringReader(str);
     }
     
     private ScriptSourceManager getScriptSourceManager(String app) {
