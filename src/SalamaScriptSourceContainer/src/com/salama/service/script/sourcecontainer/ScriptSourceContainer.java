@@ -33,15 +33,17 @@ import com.salama.service.script.core.ServiceTarget;
 public class ScriptSourceContainer implements IScriptSourceContainer {
     private final static Logger logger = Logger.getLogger(ScriptSourceContainer.class);
     
-    public final static String[] Resource_scripts_ForDefaultGlobalVars = new String[] {
+    private final static String[] Resource_scripts_ForDefaultGlobalVars = new String[] {
             "/com/salama/service/script/util/json.js", 
             "/com/salama/service/script/util/xml.js",
     };
     
-    public final static String Script_GetApp = ""
+    private final static String Script_GetApp = ""
             + "function $getApp() {\n"
             + "    return '$app';\n"
             + "}\n";
+    
+    private final static String VarName_EngineBridge = "$engineBridge";
     
     private String _scriptEngineName;
     private IServiceNameVerifier _serviceNameVerifier;
@@ -229,13 +231,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //compile only
         for(InitLoadScriptEntry entry : initLoadEntries) {
             try {
-                ScriptCompileResult compileResult = compileNoneScriptContext(
+                ScriptCompileResult compileResult = compileScriptSource(
                         entry.getApp(),  entry.getScript(), entry.getConfig()
                         );
                 compileResultList.add(compileResult);
                 
                 logger.info(
-                        "script source compiled. script[" + entry.getEntryNum() + "]" 
+                        "script source compiled."
+                        + " path:" + entry.getScript().getPath() 
                         + " app[" + entry.getApp() + "] serviceName:[" + compileResult.serviceName + "]"
                         + " compiledScript:" + compileResult.compiledScript
                         + " jsObj:" + compileResult.jsObj
@@ -248,7 +251,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //reload only
         for(ScriptCompileResult compileResult : compileResultList) {
             try {
-                compileScriptContext(compileResult);
+                reloadScriptContext(compileResult);
             } catch (Throwable e) {
                 logger.error(null, e);
             }
@@ -321,6 +324,8 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     }
     
     private void loadDefaultGlobalVars() {
+        _scriptEngineManager.put(VarName_EngineBridge, new ScriptEngineBridge());
+        
         Charset charset = Charset.forName("utf-8");        
         for(String resPath : Resource_scripts_ForDefaultGlobalVars) {
             try {
@@ -510,7 +515,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         }
     }
     
-    private ScriptCompileResult compileNoneScriptContext(
+    private ScriptCompileResult compileScriptSource(
             String app, ITextFile script, Reader config
             ) throws ScriptException, IOException {
         //destroy the ScriptContext before recompile
@@ -534,7 +539,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             isGlobal = true;
         } else {
             if(!_serviceNameVerifier.verifyFormatOfApp(app)) {
-                throw new RuntimeException("Invalid format of app:" + app);
+                throw new RuntimeException("Invalid format of app:" + app + " path:" + script.getPath());
             }
             
             engine = getScriptSourceManager(app).getEngine();
@@ -548,7 +553,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             compiledScript = ((Compilable) engine).compile(scriptStr);
             jsObj = compiledScript.eval();
         } catch (ScriptException e) {
-            logger.error("Error occurred in compiling script:\n" + scriptStr, e);
+            logger.error("Error occurred in compiling script. path:" + script.getPath(), e);
             throw e;
         }
         
@@ -564,7 +569,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             
             if(serviceName != null && serviceName.length() > 0) {
                 if(!_serviceNameVerifier.verifyFormatOfServiceName(serviceName)) {
-                    throw new RuntimeException("Invalid format of serviceName:" + serviceName);
+                    throw new RuntimeException("Invalid format of serviceName:" + serviceName + " path:" + script.getPath());
                 }
                 
                 final IScriptContext scriptContext = jsObjToInterface((Invocable) engine, jsObj, IScriptContext.class);
@@ -589,7 +594,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                 );
     }
     
-    private boolean compileScriptContext(final ScriptCompileResult compileResult) {
+    private boolean reloadScriptContext(final ScriptCompileResult compileResult) {
         if(compileResult.jsObj == null) {
             return false;
         }
@@ -649,9 +654,10 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     private String updateScriptSource(
             String app, ITextFile script, Reader config
             ) throws ScriptException, NoSuchMethodException, IOException {
-        final ScriptCompileResult compileResult = compileNoneScriptContext(app, script, config);
+        final ScriptCompileResult compileResult = compileScriptSource(app, script, config);
         logger.info(
                 "script source compiled."
+                + " path:" + script.getPath()
                 + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
                 + " compiledScript:" + compileResult.compiledScript
                 + " jsObj:" + compileResult.jsObj
@@ -660,6 +666,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         if(compileResult.jsObj == null) {
             logger.info(
                     "script source updated. (null returned by eval())"
+                    + " path:" + script.getPath()
                     + " app[" + app + "] serviceName:[null]"
                     + " compiledScript:" + compileResult.compiledScript
                     );
@@ -669,16 +676,18 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         if(compileResult.serviceName == null || compileResult.serviceName.length() == 0) {
             logger.warn(
                     "script source updated."
+                    + " path:" + script.getPath()
                     + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
                     + " compiledScript:" + compileResult.compiledScript
                     );
             return null;
         }
         
-        compileScriptContext(compileResult);
+        reloadScriptContext(compileResult);
 
         logger.info(
                 "script source updated."
+                + " path:" + script.getPath()
                 + " app[" + app + "] serviceName:[" + compileResult.serviceName + "]"
                 + " compiledScript:" + compileResult.compiledScript
                 );
@@ -912,5 +921,19 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     private ScriptEngine createScriptEngine(ScriptEngineManager engineManager) {
         return engineManager.getEngineByName(_scriptEngineName);
     }
-    
+
+    public class ScriptEngineBridge {
+        public Object call(
+                String app, String serviceName, String methodName,
+                Object params
+                ) throws NoSuchMethodException, ScriptException {
+            CompiledScript compiledScript = getScriptSourceManager(app).getCompiledScript(serviceName);
+            Object serviceObj = compiledScript.eval();
+            
+            return ((Invocable) compiledScript.getEngine()).invokeMethod(
+                    serviceObj, methodName, 
+                    params
+                    );
+        }
+    }
 }

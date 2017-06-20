@@ -8,26 +8,20 @@ import javax.script.ScriptException;
 public interface IScriptSourceWatcher {
     
     public static class InitLoadJavaEntry {
-        private int entryNum;
         private String app;
         private String varName;
         private Object obj; 
         private Reader config;
         
         public InitLoadJavaEntry(
-                int entryNum,
                 String app, String varName, Object obj, Reader config
                 ) {
-            this.entryNum = entryNum;
             this.app = app;
             this.varName = varName;
             this.obj = obj;
             this.config = config;
         }
         
-        public int getEntryNum() {
-            return entryNum;
-        }
         public String getApp() {
             return app;
         }
@@ -44,25 +38,18 @@ public interface IScriptSourceWatcher {
     } 
     
     public static class InitLoadScriptEntry {
-        private int entryNum;
         private String app;
         private ITextFile script;
         private Reader config;
         
         public InitLoadScriptEntry(
-                int entryNum,
                 String app, ITextFile script, Reader config
                 ) {
-            this.entryNum = entryNum;
             this.app = app;
             this.script = script;
             this.config = config;
         }
 
-        public int getEntryNum() {
-            return entryNum;
-        }
-        
         public String getApp() {
             return app;
         }

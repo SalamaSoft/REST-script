@@ -38,7 +38,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     
     
     public final static String DEFAULT_CHARSET_NAME = "utf-8";
-    public final static Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_CHARSET_NAME);
+    private final static Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_CHARSET_NAME);
     
     private final static String APP_NAME_GLOBAL = "$";    
     
@@ -270,7 +270,6 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     
     private List<InitLoadScriptEntry> getInitLoadScriptFiles() {
         List<InitLoadScriptEntry> initLoadEntries = new ArrayList<>();
-        int fileIndex = 0;
         
         //global script ------
         {
@@ -295,10 +294,9 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     
                     config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
                     
-                    final int entryNum = (fileIndex++);
-                    logger.info("Global script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());                    
+                    logger.info("Global script file scanned. script:" + file.getAbsolutePath());                    
                     initLoadEntries.add(new InitLoadScriptEntry(
-                            entryNum, null, 
+                            null, 
                             new TextFile(file, DEFAULT_CHARSET), 
                             config
                             ));
@@ -318,10 +316,9 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             for(File file : fileList) {
                 //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
                 try {
-                    final int entryNum = (fileIndex++);
-                    logger.info("Global script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
+                    logger.info("Global script file scanned. script:" + file.getAbsolutePath());
                     initLoadEntries.add(new InitLoadScriptEntry(
-                            entryNum, null, 
+                            null, 
                             new TextFile(file, DEFAULT_CHARSET), 
                             null
                             ));
@@ -358,10 +355,9 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
 
                             config = _configLocationResolver.resolveConfigLocation(initSetting.getConfigLocation());
                             
-                            final int entryNum = (fileIndex++);
-                            logger.info("App script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
+                            logger.info("App script file scanned. script:" + file.getAbsolutePath());
                             initLoadEntries.add(new InitLoadScriptEntry(
-                                    entryNum, app, 
+                                    app, 
                                     new TextFile(file, DEFAULT_CHARSET), 
                                     config
                                     ));
@@ -382,10 +378,9 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                         try {
                             //handleDirWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
                             
-                            final int entryNum = (fileIndex++);
-                            logger.info("App script file scanned. script[" + entryNum + "]:" + file.getAbsolutePath());
+                            logger.info("App script file scanned. script:" + file.getAbsolutePath());
                             initLoadEntries.add(new InitLoadScriptEntry(
-                                    entryNum, app, 
+                                    app, 
                                     new TextFile(file, DEFAULT_CHARSET), 
                                     null
                                     ));
