@@ -10,7 +10,7 @@ $xml = new (function () {
         return XmlJsonObjParser.parseXmlOrJson(str);
     };
 
-    this.stringfy = function(obj) {
+    this.stringify = function(obj) {
         return XmlSerializer.objectToString(obj);
     };
 

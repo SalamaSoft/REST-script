@@ -9,8 +9,8 @@ TestContext1 = new (function () {
         logger.debug("reload() ------");
 
         var configObj =  $xml.parse(IOUtil.readReaderAsString(config));
-        logger.debug("configObj to xml:\n" + $xml.stringfy(configObj));
-        logger.debug("configObj to json:\n" + $json.stringfy(configObj));
+        logger.debug("configObj to xml:\n" + $xml.stringify(configObj));
+        logger.debug("configObj to json:\n" + $json.stringify(configObj));
     };
 
     this.destroy = function() {

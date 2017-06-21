@@ -9,7 +9,7 @@ $json = new (function () {
         return _innerType.parse(str);
     };
 
-    this.stringfy = function(obj) {
+    this.stringify = function(obj) {
         return _innerType.toJSONString(obj);
     };
 
