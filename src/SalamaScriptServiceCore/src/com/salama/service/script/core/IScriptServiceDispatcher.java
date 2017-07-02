@@ -11,6 +11,8 @@ public interface IScriptServiceDispatcher<ReqT, RespT> extends IScriptContext {
 
     IServiceTargetFinder<ReqT> getServiceTargetFinder();
     
-    Object dispatch(ReqT request, RespT response) throws ScriptException, NoSuchMethodException;
+    IScriptSourceProvider getScriptSourceProvider();
     
+    Object dispatch(ReqT request, RespT response) throws ScriptException, NoSuchMethodException;
+
 }

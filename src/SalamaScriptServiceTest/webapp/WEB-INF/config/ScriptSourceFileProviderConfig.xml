@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScriptSourceFileProviderConfig>
   <scriptFileExtFilter>.js</scriptFileExtFilter>
+  
+  <extLibDir>/Users/beef_in_jp/Documents/GitHubProjects/SalamaSoft/REST-script/src/SalamaScriptServiceTest/webapp/WEB-INF/extlib</extLibDir>
 
   <globalSourceDir>/Users/beef_in_jp/Documents/GitHubProjects/SalamaSoft/REST-script/src/SalamaScriptServiceTest/webapp/WEB-INF/script_global_src</globalSourceDir>
   <globalScriptInitSettings>

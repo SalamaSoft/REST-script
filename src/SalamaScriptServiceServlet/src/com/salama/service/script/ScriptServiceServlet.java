@@ -54,6 +54,12 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
         _fileUploadSupport = _scriptSericeContext.getFileUploadSupport();
         _serviceDispatcher = _scriptSericeContext.getServiceDispatcher();
         
+        if(_serviceDispatcher.getScriptSourceProvider().getClassLoader() != null) {
+            Thread.currentThread().setContextClassLoader(
+                    _serviceDispatcher.getScriptSourceProvider().getClassLoader()
+                    );
+        }
+        
         _servletNum = _servletCounter.getAndIncrement();
         logger.info("ScriptServlet[" + _servletNum + "] --> inited.");
     }

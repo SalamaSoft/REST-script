@@ -50,6 +50,11 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
     public IServiceTargetFinder<RequestWrapper> getServiceTargetFinder() {
         return _serviceTargetFinder;
     }
+    
+    @Override
+    public IScriptSourceProvider getScriptSourceProvider() {
+        return _scriptSourceProvider;
+    }
 
     @SuppressWarnings("unchecked")
     @Override

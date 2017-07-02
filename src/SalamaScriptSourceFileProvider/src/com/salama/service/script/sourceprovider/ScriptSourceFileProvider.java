@@ -6,7 +6,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
@@ -16,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
@@ -28,6 +31,7 @@ import com.salama.service.script.sourceprovider.DirWatcher.IWatchEventHandler;
 import com.salama.service.script.sourceprovider.config.ScriptAppSetting;
 import com.salama.service.script.sourceprovider.config.ScriptInitSetting;
 import com.salama.service.script.sourceprovider.config.ScriptSourceFileProviderConfig;
+import com.sun.javafx.runtime.SystemProperties;
 
 import MetoXML.XmlDeserializer;
 import MetoXML.Base.XmlParseException;
@@ -55,12 +59,18 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     
     private String[] _scriptFileExtFilterNames;
     private AppScriptLocationMap _appScriptLocationMap = new AppScriptLocationMap();
+    private ClassLoader _classLoader = null;
     
     @Override
     public void addWatcher(IScriptSourceWatcher watcher) {
         _scriptWatchers.add(watcher);
     }
 
+    @Override
+    public ClassLoader getClassLoader() {
+        return _classLoader;
+    }
+    
     @Override
     public void reload(Reader config, IConfigLocationResolver configLocationResolver) throws IOException {
         try {
@@ -116,6 +126,8 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     + "\nGlobalSourceDir:" + _config.getGlobalSourceDir()
                     + "\nAppSourceDir:" + _config.getAppSourceDir()
                     );
+            
+            loadExtLib();
             
             initDirWatcher();
             
@@ -191,6 +203,47 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     @Override
     public String serviceName() {
         return null;
+    }
+    
+    private void loadExtLib() {
+        try {
+            debugClassLoader();
+            
+            if(_config.getExtLibDir() == null 
+                    || _config.getExtLibDir().trim().length() == 0) {
+                return ;
+            }
+            File extLibDir = new File(_config.getExtLibDir());
+            
+            /*
+            ClassLoader myClassLoader = ClassLoaderUtil.loadJarsInDir(
+                    Thread.currentThread().getContextClassLoader(), 
+                    extLibDir
+                    );
+            Thread.currentThread().setContextClassLoader(myClassLoader);
+            _classLoader = myClassLoader;
+            */
+            
+            ClassLoaderUtil.loadJarsIntoUrlClassLoader(
+                    (URLClassLoader) Thread.currentThread().getContextClassLoader(), 
+                    extLibDir
+                    );
+            
+            ClassLoaderUtil.addLibraryPath(extLibDir);
+        } catch (Throwable e) {
+            logger.error(null, e);
+        }
+    }
+    
+    private void debugClassLoader() {
+        logger.info("this.classLoader:" + this.getClass().getClassLoader());
+        logger.info("curThread.classloader:" + Thread.currentThread().getContextClassLoader());
+        ClassLoader cl = Thread.currentThread().getContextClassLoader().getParent();
+        while(cl != null) {
+            logger.info("parent_classloader:" + cl);
+            
+            cl = cl.getParent();
+        }
     }
     
     private void initDirWatcher() throws IOException {

@@ -7,6 +7,11 @@ import java.util.List;
 public class ScriptSourceFileProviderConfig implements Serializable {
 
     private static final long serialVersionUID = -3623303498891214113L;
+
+    /**
+     * Directory for placing library files (.jar, .so, .dll, ... etc)
+     */
+    private String _extLibDir;    
     
     /**
      * File extension names(to filter files). Separated by comma if multiple ones.
@@ -18,6 +23,15 @@ public class ScriptSourceFileProviderConfig implements Serializable {
     
     private String _appSourceDir;
     private List<ScriptAppSetting> _appSettings = new ArrayList<>();
+
+    
+    public String getExtLibDir() {
+        return _extLibDir;
+    }
+
+    public void setExtLibDir(String extLibDir) {
+        _extLibDir = extLibDir;
+    }
 
     public String getScriptFileExtFilter() {
         return _scriptFileExtFilter;
