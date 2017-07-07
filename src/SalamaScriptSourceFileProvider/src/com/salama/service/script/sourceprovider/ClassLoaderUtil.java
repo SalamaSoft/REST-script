@@ -76,6 +76,9 @@ public class ClassLoaderUtil {
 
     public static void loadJarsIntoUrlClassLoader(URLClassLoader loader, File dir) throws IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
         File[] jarFiles = dir.listFiles(_jarFileFilter);
+        if(jarFiles == null || jarFiles.length == 0) {
+            return;
+        }
         
         Method method = URLClassLoader.class.getDeclaredMethod("addURL", new Class[] {URL.class});
         method.setAccessible(true);

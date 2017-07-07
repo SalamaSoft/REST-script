@@ -26,7 +26,8 @@ public class ResponseConverter {
     
     /**
      * 
-     * @param responseType ('xml'|'json')[.jsonp=$varName] 
+     * @param responseType ('xml'|'json')[.jsonp=$varName]
+     * @param responsePrettify When it is true, result will be prettified.
      * @param responseVal 
      * @param urlEncoding charset for encodeURL
      * @return "" if responseVal is null.
@@ -40,6 +41,7 @@ public class ResponseConverter {
      */
     public static String convertResponse(
             String responseType,
+            boolean responsePrettify,
             Object responseVal,
             String urlEncoding
             ) throws IllegalAccessException, InvocationTargetException, IntrospectionException, IOException {
@@ -59,7 +61,7 @@ public class ResponseConverter {
             int convertTypeLen;
             String responseStr;
             if(responseType.startsWith(CONVERT_TYPE_JSON)) {
-                responseStr = toJson(responseVal);
+                responseStr = toJson(responseVal, responsePrettify);
                 convertTypeLen = LEN_CONVERT_TYPE_JSON;
             } else {
                 responseStr = toXml(responseVal);
@@ -97,11 +99,21 @@ public class ResponseConverter {
         }
     }
     
+    /**
+     * 
+     * @param obj
+     * @param prettify Default false
+     * @return
+     */
     public static String toJson(Object obj) {
+        return toJson(obj, false);
+    }
+    
+    public static String toJson(Object obj, boolean prettify) {
         if(obj == null) {
             return "";
         } else {
-            return JSON.toJSONString(obj);
+            return JSON.toJSONString(obj, prettify);
         }
     }
     

@@ -35,6 +35,7 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
      * Default "xml" when empty 
      */
     public final static String HTTP_HEADER_RESPONSE_TYPE = "Response-Type";
+    public final static String HTTP_HEADER_RESPONSE_PRETTIFY = "Response-Prettify";
     
     private final static AtomicLong _servletCounter = new AtomicLong();
     
@@ -163,7 +164,19 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
                 return "";
             } else {
                 String responseType = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_TYPE);
-                return ResponseConverter.convertResponse(responseType, retVal, request.getCharacterEncoding());
+                
+                //Default prettify
+                boolean bResponsePrettify = true;
+                String responsePrettify = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_PRETTIFY);
+                if(responsePrettify != null && responsePrettify.length() > 0 && responsePrettify.equalsIgnoreCase("false")) {
+                    bResponsePrettify = false;
+                }
+                
+                return ResponseConverter.convertResponse(
+                        responseType, bResponsePrettify,
+                        retVal, 
+                        request.getCharacterEncoding()
+                        );
             }
         } catch (Throwable e) {
             if(e.getClass() == MethodAccessNoAuthorityException.class) {
