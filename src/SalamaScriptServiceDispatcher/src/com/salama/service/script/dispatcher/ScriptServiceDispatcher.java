@@ -18,6 +18,8 @@ import com.salama.service.core.net.ResponseWrapper;
 import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptContext;
 import com.salama.service.script.core.IScriptServiceDispatcher;
+import com.salama.service.script.core.IScriptServicePostFilter;
+import com.salama.service.script.core.IScriptServicePreFilter;
 import com.salama.service.script.core.IScriptSourceContainer;
 import com.salama.service.script.core.IScriptSourceProvider;
 import com.salama.service.script.core.IServiceTargetFinder;
@@ -126,39 +128,63 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
     public Object dispatch(
             RequestWrapper request, ResponseWrapper response
             ) throws ScriptException, NoSuchMethodException {
-        ServiceTarget target = _serviceTargetFinder.findOut(request);
+        final ServiceTarget target = _serviceTargetFinder.findOut(request);
         if(logger.isDebugEnabled()) {
             logger.debug("Script service dispatch -> "
                     + " app:" + target.app 
-                    + " service:" + target.serviceName
-                    + " method:" + target.methodName
+                    + " service:" + target.service
+                    + " method:" + target.method
                     );
         }
-        CompiledScript compiledScript = _scriptSourceContainer.findCompiledScript(target);
+        final CompiledScript compiledScript = _scriptSourceContainer.findCompiledScript(target);
         if(compiledScript == null) {
             throw new IllegalArgumentException(
                     "Script service target not found."
                     + " app:" + target.app 
-                    + " service:" + target.serviceName
-                    + " method:" + target.methodName
+                    + " service:" + target.service
+                    + " method:" + target.method
                     );
         }
         
-        Object serviceObj = compiledScript.eval();
-        return ((Invocable) compiledScript.getEngine()).invokeMethod(
-                serviceObj, target.methodName, 
-                parseRequestParams(request),
+        //parse params
+        Map<String, Object> params = parseRequestParams(request);
+        
+        //prefilter
+        final IScriptServicePreFilter prefilter = _scriptSourceContainer.getPreFilter(target);
+        if(prefilter != null) {
+            Map<String, Object> filterResult = prefilter.doPreFilter(target, params, request, response);
+            if(filterResult != null 
+                    && (Boolean)filterResult.get(IScriptServicePreFilter.PreFilterResultKeys.override) == true
+                    ) {
+                return filterResult.get(IScriptServicePreFilter.PreFilterResultKeys.result);
+            }
+        }
+        
+        //invoke service
+        final Object serviceObj = compiledScript.eval();
+        final Object result = ((Invocable) compiledScript.getEngine()).invokeMethod(
+                serviceObj, target.method, 
+                params,
                 request, response
                 );
+        
+        //postfilter
+        final IScriptServicePostFilter postfilter = _scriptSourceContainer.getPostFilter(target);
+        if(postfilter != null) {
+            Object filterResult = postfilter.doPostFilter(target, result, request, response);
+            return filterResult;
+        }
+        
+        return result;
     }
         
-    private Map<String, String> parseRequestParams(RequestWrapper request) {
+    private Map<String, Object> parseRequestParams(RequestWrapper request) {
         Enumeration<String> nameEnum = request.getParameterNames();
         
-        Map<String, String> paramMap = new HashMap<>();
+        Map<String, Object> paramMap = new HashMap<>();
         while(nameEnum.hasMoreElements()) {
             final String name = nameEnum.nextElement();
-            final String value = request.getParameter(name);
+            final Object value = request.getParameter(name);
             
             paramMap.put(name, value);
         }

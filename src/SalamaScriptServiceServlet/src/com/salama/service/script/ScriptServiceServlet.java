@@ -159,25 +159,24 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     protected String doService(RequestWrapper request, ResponseWrapper response) {
         try {
             Object retVal = _serviceDispatcher.dispatch(request, response);
-            
             if(retVal == null) {
-                return "";
-            } else {
-                String responseType = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_TYPE);
-                
-                //Default prettify
-                boolean bResponsePrettify = true;
-                String responsePrettify = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_PRETTIFY);
-                if(responsePrettify != null && responsePrettify.length() > 0 && responsePrettify.equalsIgnoreCase("false")) {
-                    bResponsePrettify = false;
-                }
-                
-                return ResponseConverter.convertResponse(
-                        responseType, bResponsePrettify,
-                        retVal, 
-                        request.getCharacterEncoding()
-                        );
+                return null;
+            }  
+            
+            String responseType = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_TYPE);
+            
+            //Default prettify
+            boolean bResponsePrettify = true;
+            String responsePrettify = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_PRETTIFY);
+            if(responsePrettify != null && responsePrettify.length() > 0 && responsePrettify.equalsIgnoreCase("false")) {
+                bResponsePrettify = false;
             }
+            
+            return ResponseConverter.convertResponse(
+                    responseType, bResponsePrettify,
+                    retVal, 
+                    request.getCharacterEncoding()
+                    );
         } catch (Throwable e) {
             if(e.getClass() == MethodAccessNoAuthorityException.class) {
                 return ReturnValue_Xml_MethodAccessNoAuthority;

@@ -14,5 +14,9 @@ public interface IScriptSourceContainer extends IScriptSourceWatcher, Closeable 
     void init(String scriptEngineName, IServiceNameVerifier serviceNameVerifier, IConfigLocationResolver configLocationResolver);
     
     CompiledScript findCompiledScript(ServiceTarget target);
+    
+    IScriptServicePreFilter getPreFilter(ServiceTarget target);
+    
+    IScriptServicePostFilter getPostFilter(ServiceTarget target);
 
 }

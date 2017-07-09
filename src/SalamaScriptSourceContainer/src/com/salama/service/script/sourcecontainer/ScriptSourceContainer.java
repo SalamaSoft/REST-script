@@ -25,6 +25,8 @@ import org.apache.log4j.Logger;
 import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptContext;
 import com.salama.service.script.core.IScriptService;
+import com.salama.service.script.core.IScriptServicePostFilter;
+import com.salama.service.script.core.IScriptServicePreFilter;
 import com.salama.service.script.core.IScriptSourceContainer;
 import com.salama.service.script.core.IServiceNameVerifier;
 import com.salama.service.script.core.ITextFile;
@@ -55,6 +57,9 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     private List<ScriptObjLocation> _scriptContextLocationList;
     //key: Path of Script       value: ScriptObjLocation
     private Map<String, ScriptObjLocation> _scriptContextLocationMap;
+    //key: app          value: IScriptServicePreFilter
+    private Map<String, IScriptServicePreFilter> _scriptServicePreFilterMap;
+    private Map<String, IScriptServicePostFilter> _scriptServicePostFilterMap;
 
     //key:$app    value:ScriptSourceManager
     private final ConcurrentHashMap<String, ScriptSourceManager> _scriptSourceManagerMap = new ConcurrentHashMap<String, ScriptSourceManager>();
@@ -99,6 +104,9 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         //_sortedScriptContextNameList = new ArrayList<>();
         _scriptContextLocationList = new ArrayList<>();
         _scriptContextLocationMap = new ConcurrentHashMap<>();
+        
+        _scriptServicePreFilterMap = new ConcurrentHashMap<>();
+        _scriptServicePostFilterMap = new ConcurrentHashMap<>();
 
         //init default global vars ------
         loadDefaultGlobalVars();
@@ -198,7 +206,17 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
 
     @Override
     public CompiledScript findCompiledScript(ServiceTarget target) {
-        return getScriptSourceManager(target.app).getCompiledScript(target.serviceName);
+        return getScriptSourceManager(target.app).getCompiledScript(target.service);
+    }
+    
+    @Override
+    public IScriptServicePreFilter getPreFilter(ServiceTarget target) {
+        return _scriptServicePreFilterMap.get(target.app);
+    }
+    
+    @Override
+    public IScriptServicePostFilter getPostFilter(ServiceTarget target) {
+        return _scriptServicePostFilterMap.get(target.app);
     }
     
     @Override
@@ -642,6 +660,26 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                     getScriptSourceManager(compileResult.app).getSortedScriptContextNameList().add(compileResult.serviceName);
                 }
                 */
+                
+                //filters ------
+                final IScriptServicePreFilter servicePreFilter = jsObjToInterface(
+                        (Invocable) compileResult.engine, compileResult.jsObj, 
+                        IScriptServicePreFilter.class
+                        );
+                if(servicePreFilter != null) {
+                    _scriptServicePreFilterMap.put(compileResult.app, servicePreFilter);
+                    logger.info("servicePreFilter loaded. app:" + compileResult.app + " serviceName:" + servicePreFilter.serviceName());
+                }
+                final IScriptServicePostFilter servicePostFilter = jsObjToInterface(
+                        (Invocable) compileResult.engine, compileResult.jsObj, 
+                        IScriptServicePostFilter.class
+                        );
+                if(servicePostFilter != null) {
+                    _scriptServicePostFilterMap.put(compileResult.app, servicePostFilter);
+                    logger.info("servicePostFilter loaded. app:" + compileResult.app + " serviceName:" + servicePreFilter.serviceName());
+                }
+                
+                
             }
             addScriptContextLocation(compileResult.app, compileResult.serviceName);
             

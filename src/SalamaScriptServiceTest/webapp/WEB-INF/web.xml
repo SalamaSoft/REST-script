@@ -22,7 +22,7 @@
 		
 	<servlet-mapping>
 		<servlet-name>SalamaScriptServlet</servlet-name>
-		<url-pattern>/_sss/*</url-pattern>
+		<url-pattern>/_s/*</url-pattern>
 	</servlet-mapping>
 
 	<filter>

@@ -4,7 +4,7 @@ public class ServiceTarget {
 
     public String app;
     
-    public String serviceName;
+    public String service;
     
-    public String methodName;
+    public String method;
 }

@@ -46,8 +46,8 @@ public class UriServiceTargetFinder implements IServiceTargetFinder<RequestWrapp
         String service = serviceMethod.substring(0, lastDot);
         String method = serviceMethod.substring(lastDot + 1);
         
-        target.serviceName = service;
-        target.methodName = method;
+        target.service = service;
+        target.method = method;
         
         return target;
     }
