@@ -33,7 +33,7 @@ public class ResponseConverter {
      * @return "" if responseVal is null.
      * return responseVal directly if typeof responseVal is String,
      * otherwise convert into String with responseType if typeof responseVal is not String.
-     * Convert into xml if responseType not start with "json", and convertIn
+     * Convert into json if responseType is empty.
      * @throws IOException 
      * @throws IntrospectionException 
      * @throws InvocationTargetException 
@@ -53,8 +53,8 @@ public class ResponseConverter {
         }
         
         if(responseType == null || responseType.length() == 0) {
-            //default xml
-            return toXml(responseVal);
+            //default json
+            return toJson(responseVal, responsePrettify);
         } else {
             //convert to xml or json ------
             int responseTypeLen = responseType.length();
