@@ -2,11 +2,8 @@ package com.salama.service.script.sourceprovider;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
@@ -18,10 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptSourceProvider;
@@ -31,14 +28,13 @@ import com.salama.service.script.sourceprovider.DirWatcher.IWatchEventHandler;
 import com.salama.service.script.sourceprovider.config.ScriptAppSetting;
 import com.salama.service.script.sourceprovider.config.ScriptInitSetting;
 import com.salama.service.script.sourceprovider.config.ScriptSourceFileProviderConfig;
-import com.sun.javafx.runtime.SystemProperties;
 
 import MetoXML.XmlDeserializer;
 import MetoXML.Base.XmlParseException;
 import MetoXML.Util.ClassFinder;
 
 public class ScriptSourceFileProvider implements IScriptSourceProvider {
-    private final static Logger logger = Logger.getLogger(ScriptSourceFileProvider.class);
+    private final static Log logger = LogFactory.getLog(ScriptSourceFileProvider.class);
     
     
     public final static String DEFAULT_CHARSET_NAME = "utf-8";

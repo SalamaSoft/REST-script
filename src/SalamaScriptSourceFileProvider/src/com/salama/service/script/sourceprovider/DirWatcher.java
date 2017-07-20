@@ -14,10 +14,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class DirWatcher implements Closeable {
-    private final static Logger logger = Logger.getLogger(DirWatcher.class);
+    private final static Log logger = LogFactory.getLog(DirWatcher.class);
     
     public static interface IWatchEventHandler {
         

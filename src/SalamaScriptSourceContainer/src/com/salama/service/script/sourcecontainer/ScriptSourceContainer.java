@@ -8,7 +8,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -20,7 +19,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.salama.service.script.core.IConfigLocationResolver;
 import com.salama.service.script.core.IScriptContext;
@@ -33,7 +33,7 @@ import com.salama.service.script.core.ITextFile;
 import com.salama.service.script.core.ServiceTarget;
 
 public class ScriptSourceContainer implements IScriptSourceContainer {
-    private final static Logger logger = Logger.getLogger(ScriptSourceContainer.class);
+    private final static Log logger = LogFactory.getLog(ScriptSourceContainer.class);
     
     private final static String[] Resource_scripts_ForDefaultGlobalVars = new String[] {
             "/com/salama/service/script/util/json.js", 

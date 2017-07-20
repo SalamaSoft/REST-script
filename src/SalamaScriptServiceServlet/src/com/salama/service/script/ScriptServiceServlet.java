@@ -9,8 +9,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileUploadException;
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.salama.service.core.auth.MethodAccessNoAuthorityException;
 import com.salama.service.core.context.ServiceContext;
 import com.salama.service.core.net.RequestWrapper;
@@ -25,10 +27,30 @@ import com.salama.util.http.upload.FileUploadSupport;
 public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     private static final long serialVersionUID = -1759081420866762147L;
     
-    private final static Logger logger = Logger.getLogger(ScriptServiceServlet.class);
+    private final static Log logger = LogFactory.getLog(ScriptServiceServlet.class);
     
-    private static final String ReturnValue_Xml_MethodAccessNoAuthority = 
-            "<Error><type>MethodAccessNoAuthorityException</type></Error>";
+    
+//    private static final String ReturnValue_Xml_MethodAccessNoAuthority = 
+//            "<Error><type>MethodAccessNoAuthorityException</type></Error>";
+    public static class Error {
+        private String type;
+        
+        public Error() {
+        }
+        
+        public Error(String type) {
+            this.type = type;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+        
+    }
     
     /**
      * "xml" | "json" | "xml.jsonp=$varName" | "json.jsonp=$varName"
@@ -158,32 +180,46 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     
     protected String doService(RequestWrapper request, ResponseWrapper response) {
         try {
-            Object retVal = _serviceDispatcher.dispatch(request, response);
+            Object retVal;
+            try {
+                retVal = _serviceDispatcher.dispatch(request, response);
+            } catch (Throwable error) {
+                if(error.getClass() == MethodAccessNoAuthorityException.class) {
+                    retVal = new Error(error.getClass().getSimpleName());
+                } else {
+                    throw error;
+                }
+            }
+            
             if(retVal == null) {
                 return null;
             }  
             
-            String responseType = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_TYPE);
+            final String responseType = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_TYPE);
             
             //Default prettify
             boolean bResponsePrettify = true;
-            String responsePrettify = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_PRETTIFY);
+            final String responsePrettify = ((HttpServletRequest) request.getRequest()).getHeader(HTTP_HEADER_RESPONSE_PRETTIFY);
             if(responsePrettify != null && responsePrettify.length() > 0 && responsePrettify.equalsIgnoreCase("false")) {
                 bResponsePrettify = false;
             }
             
-            return ResponseConverter.convertResponse(
+            final String responseText = ResponseConverter.convertResponse(
                     responseType, bResponsePrettify,
                     retVal, 
                     request.getCharacterEncoding()
                     );
-        } catch (Throwable e) {
-            if(e.getClass() == MethodAccessNoAuthorityException.class) {
-                return ReturnValue_Xml_MethodAccessNoAuthority;
-            } else {
-                logger.error(null, e);
-                return null;
+            if(logger.isDebugEnabled()) {
+                logger.debug("Script service finish -> "
+                        + " URI:" + ((HttpServletRequest) request.getRequest()).getRequestURI()
+                        + " responseText:\n" + responseText
+                        );
             }
+            
+            return responseText;
+        } catch (Throwable e) {
+            logger.error("URI:" + ((HttpServletRequest) request.getRequest()).getRequestURI(), e);
+            return null;
         }
         
     }

@@ -6,19 +6,19 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLStreamHandlerFactory;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class ClassLoaderUtil {
-    private final static Logger logger = Logger.getLogger(ClassLoaderUtil.class);
+    private final static Log logger = LogFactory.getLog(ClassLoaderUtil.class);
+    
     private final static FileFilter _jarFileFilter = new FileFilter() {
         
         @Override

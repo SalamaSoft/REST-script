@@ -9,7 +9,8 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * 
@@ -17,7 +18,7 @@ import org.apache.log4j.Logger;
  *
  */
 public class CharacterEncodingFilter implements Filter {
-	private final static Logger logger = Logger.getLogger(CharacterEncodingFilter.class);
+    private final static Log logger = LogFactory.getLog(CharacterEncodingFilter.class);
 	
 	public final static String INIT_PARAM_NAME_ENCODING = "encoding";
 	protected final static String FILTER_ALREDY_EXCUTED = 

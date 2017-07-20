@@ -6,7 +6,8 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.salama.service.core.net.RequestWrapper;
 import com.salama.service.script.core.IConfigLocationResolver;
@@ -14,7 +15,7 @@ import com.salama.service.script.core.IServiceTargetFinder;
 import com.salama.service.script.core.ServiceTarget;
 
 public class UriServiceTargetFinder implements IServiceTargetFinder<RequestWrapper> {
-    private final static Logger logger = Logger.getLogger(UriServiceTargetFinder.class);
+    private final static Log logger = LogFactory.getLog(UriServiceTargetFinder.class);
     
     private final static String REGEX_APP = "[a-zA-Z0-9\\-_\\.]+";
     private final static String REGEX_SERVICE_NAME = "[a-zA-Z0-9\\-_\\.]+";

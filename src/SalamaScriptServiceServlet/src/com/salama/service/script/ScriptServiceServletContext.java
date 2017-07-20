@@ -8,7 +8,8 @@ import java.io.Reader;
 
 import javax.servlet.ServletContext;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.salama.service.core.context.CommonContext;
 import com.salama.service.script.config.ScriptServiceServletContextConfig;
@@ -21,7 +22,7 @@ import MetoXML.XmlDeserializer;
 public class ScriptServiceServletContext implements CommonContext {
     private static final long serialVersionUID = -4613337221562368596L;
     
-    private final static Logger logger = Logger.getLogger(ScriptServiceServletContext.class);
+    private final static Log logger = LogFactory.getLog(ScriptServiceServletContext.class);
     private static final String DefaultEncoding = "utf-8";
     
     private ScriptServiceServletContextConfig _config;

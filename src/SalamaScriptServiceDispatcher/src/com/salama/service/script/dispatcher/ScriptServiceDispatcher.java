@@ -11,8 +11,10 @@ import javax.script.CompiledScript;
 import javax.script.Invocable;
 import javax.script.ScriptException;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.salama.service.core.net.RequestWrapper;
 import com.salama.service.core.net.ResponseWrapper;
 import com.salama.service.script.core.IConfigLocationResolver;
@@ -31,7 +33,7 @@ import MetoXML.XmlDeserializer;
 import MetoXML.Base.XmlParseException;
 
 public class ScriptServiceDispatcher implements IScriptServiceDispatcher<RequestWrapper, ResponseWrapper> {
-    private final static Logger logger = Logger.getLogger(ScriptServiceDispatcher.class);
+    private final static Log logger = LogFactory.getLog(ScriptServiceDispatcher.class);
     
     //private final String _scriptEngineName;
     private ScriptServiceDispatcherConfig _config;
@@ -129,13 +131,6 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
             RequestWrapper request, ResponseWrapper response
             ) throws ScriptException, NoSuchMethodException {
         final ServiceTarget target = _serviceTargetFinder.findOut(request);
-        if(logger.isDebugEnabled()) {
-            logger.debug("Script service dispatch -> "
-                    + " app:" + target.app 
-                    + " service:" + target.service
-                    + " method:" + target.method
-                    );
-        }
         final CompiledScript compiledScript = _scriptSourceContainer.findCompiledScript(target);
         if(compiledScript == null) {
             throw new IllegalArgumentException(
@@ -148,6 +143,14 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
         
         //parse params
         Map<String, Object> params = parseRequestParams(request);
+        if(logger.isDebugEnabled()) {
+            logger.debug("Script service dispatch -> "
+                    + " app:" + target.app 
+                    + " service:" + target.service
+                    + " method:" + target.method
+                    + " params:" + JSON.toJSONString(params)
+                    );
+        }
         
         //prefilter
         final IScriptServicePreFilter prefilter = _scriptSourceContainer.getPreFilter(target);
