@@ -35,6 +35,8 @@ import MetoXML.Base.XmlParseException;
 public class ScriptServiceDispatcher implements IScriptServiceDispatcher<RequestWrapper, ResponseWrapper> {
     private final static Log logger = LogFactory.getLog(ScriptServiceDispatcher.class);
     
+    private final static String VarName_Dispatcher = "$dispatcher";
+    
     //private final String _scriptEngineName;
     private ScriptServiceDispatcherConfig _config;
     private IConfigLocationResolver _configLocationResolver;
@@ -83,6 +85,9 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
                 //init source container
                 _scriptSourceContainer = new ScriptSourceContainer();
                 _scriptSourceContainer.init(_config.getScriptEngineName(), _serviceTargetFinder, configLocationResolver);
+                
+                //my global variables
+                initGlobalVar();
                 
                 //add watcher
                 _scriptSourceProvider.addWatcher(_scriptSourceContainer);
@@ -211,6 +216,60 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
         return scriptContext;
     }
     
+    private void initGlobalVar() {
+        _scriptSourceContainer.onJavaObjUpdated(
+                null, VarName_Dispatcher, 
+                new ScriptEngineBridge(), 
+                null
+                );
+    }
+    
+    public class ScriptEngineBridge {
+        
+        public ServiceTarget findOutTarget(RequestWrapper request) {
+            return _serviceTargetFinder.findOut(request);
+        }
+        
+        public ServiceTarget buildTarget(String app, String service, String method) {
+            ServiceTarget target = new ServiceTarget();
+            target.app = app;
+            target.service = service;
+            target.method = method;
+            
+            return target;
+        }
+        
+        public boolean hasTarget(ServiceTarget target) {
+            final CompiledScript compiledScript = _scriptSourceContainer.findCompiledScript(target);
+            
+            return (compiledScript != null);
+        }
+        
+        public Object call(
+                ServiceTarget target,
+                Object params, 
+                Object request, Object response 
+                ) throws NoSuchMethodException, ScriptException {
+            if(target.app == null || target.app.length() == 0) {
+                throw new IllegalArgumentException(
+                        "app of target should not be empty."
+                        + " app:" + target.app 
+                        + " service:" + target.service 
+                        + " method:" + target.method
+                        );
+            }
+            
+            CompiledScript compiledScript = _scriptSourceContainer.findCompiledScript(target);
+            Object serviceObj = compiledScript.eval();
+            
+            return ((Invocable) compiledScript.getEngine()).invokeMethod(
+                    serviceObj, target.method, 
+                    params,
+                    request, response
+                    );
+        }
+        
+    }
     
     private static ClassLoader getDefaultClassLoader() {
         ClassLoader classLoader = null;

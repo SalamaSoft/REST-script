@@ -45,8 +45,6 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
             + "    return '$app';\n"
             + "}\n";
     
-    private final static String VarName_EngineBridge = "$engineBridge";
-    
     private String _scriptEngineName;
     private IServiceNameVerifier _serviceNameVerifier;
     private IConfigLocationResolver _configLocationResolver;
@@ -342,8 +340,6 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     }
     
     private void loadDefaultGlobalVars() {
-        _scriptEngineManager.put(VarName_EngineBridge, new ScriptEngineBridge());
-        
         Charset charset = Charset.forName("utf-8");        
         for(String resPath : Resource_scripts_ForDefaultGlobalVars) {
             try {
@@ -960,18 +956,4 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
         return engineManager.getEngineByName(_scriptEngineName);
     }
 
-    public class ScriptEngineBridge {
-        public Object call(
-                String app, String serviceName, String methodName,
-                Object params
-                ) throws NoSuchMethodException, ScriptException {
-            CompiledScript compiledScript = getScriptSourceManager(app).getCompiledScript(serviceName);
-            Object serviceObj = compiledScript.eval();
-            
-            return ((Invocable) compiledScript.getEngine()).invokeMethod(
-                    serviceObj, methodName, 
-                    params
-                    );
-        }
-    }
 }
