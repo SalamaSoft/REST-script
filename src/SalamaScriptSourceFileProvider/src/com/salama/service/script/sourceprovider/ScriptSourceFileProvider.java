@@ -327,8 +327,15 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
             
             //load files defined in ScriptInitSettings 
             for(ScriptInitSetting initSetting : _config.getGlobalScriptInitSettings()) {
+                /*
                 File file = removeFile(fileList, initSetting.getScriptName());
                 if(file == null) {
+                    logger.error("Global script file not exits. scriptName:" + initSetting.getScriptName());
+                    continue;
+                }
+                */
+                File file = new File(_globalSourceDir, initSetting.getScriptName());
+                if(!fileList.remove(file)) {
                     logger.error("Global script file not exits. scriptName:" + initSetting.getScriptName());
                     continue;
                 }
@@ -388,11 +395,19 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
                     
                     //load files defined in ScriptInitSettings 
                     for(ScriptInitSetting initSetting : appSetting.getScriptInitSettings()) {
+                        /*
                         File file = removeFile(fileList, initSetting.getScriptName());
                         if(file == null) {
                             logger.error("App script file not exits. scriptName:" + initSetting.getScriptName());
                             continue;
                         }
+                        */
+                        File file = new File(new File(_appSourceDir, app), initSetting.getScriptName());
+                        if(!fileList.remove(file)) {
+                            logger.error("Global script file not exits. scriptName:" + initSetting.getScriptName());
+                            continue;
+                        }
+                        
                         if(!file.exists()) {
                             logger.error("App script file not exits. file:" + file.getAbsolutePath());
                             continue;
@@ -471,6 +486,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         }
     }
 
+    /* deprecated
     private static File removeFile(List<File> fileList, String fileName) {
         int size = fileList.size();
         for(int i = 0; i < size; i++) {
@@ -484,6 +500,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
         
         return null;
     }
+    */
     
     private void handleDirWatchEvent(WatchEvent.Kind<?> eventKind, File file) {
         //ignore hidden files
