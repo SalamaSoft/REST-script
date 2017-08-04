@@ -29,6 +29,9 @@ public class ScriptServiceServlet extends javax.servlet.http.HttpServlet {
     
     private final static Log logger = LogFactory.getLog(ScriptServiceServlet.class);
     
+    static {
+        logger.info("ScriptServiceServlet VERSION: 1.0.0(20170802)");
+    }
     
 //    private static final String ReturnValue_Xml_MethodAccessNoAuthority = 
 //            "<Error><type>MethodAccessNoAuthorityException</type></Error>";

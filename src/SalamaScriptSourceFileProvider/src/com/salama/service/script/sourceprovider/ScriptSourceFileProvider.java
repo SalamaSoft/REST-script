@@ -36,6 +36,9 @@ import MetoXML.Util.ClassFinder;
 public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private final static Log logger = LogFactory.getLog(ScriptSourceFileProvider.class);
     
+    static {
+        logger.info("ScriptSourceFileProvider VERSION: 1.0.0(20170802)");
+    }
     
     public final static String DEFAULT_CHARSET_NAME = "utf-8";
     private final static Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_CHARSET_NAME);

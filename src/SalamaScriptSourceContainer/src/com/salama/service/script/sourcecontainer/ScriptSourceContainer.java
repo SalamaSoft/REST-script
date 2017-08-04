@@ -35,6 +35,10 @@ import com.salama.service.script.core.ServiceTarget;
 public class ScriptSourceContainer implements IScriptSourceContainer {
     private final static Log logger = LogFactory.getLog(ScriptSourceContainer.class);
     
+    static {
+        logger.info("ScriptSourceContainer VERSION: 1.0.0(20170802)");
+    }
+    
     private final static String[] Resource_scripts_ForDefaultGlobalVars = new String[] {
             "/com/salama/service/script/util/json.js", 
             "/com/salama/service/script/util/xml.js",

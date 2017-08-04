@@ -35,6 +35,10 @@ import MetoXML.Base.XmlParseException;
 public class ScriptServiceDispatcher implements IScriptServiceDispatcher<RequestWrapper, ResponseWrapper> {
     private final static Log logger = LogFactory.getLog(ScriptServiceDispatcher.class);
     
+    static {
+        logger.info("ScriptServiceDispatcher VERSION: 1.0.0(20170802)");
+    }
+    
     private final static String VarName_Dispatcher = "$dispatcher";
     
     //private final String _scriptEngineName;
@@ -136,6 +140,17 @@ public class ScriptServiceDispatcher implements IScriptServiceDispatcher<Request
             RequestWrapper request, ResponseWrapper response
             ) throws ScriptException, NoSuchMethodException {
         final ServiceTarget target = _serviceTargetFinder.findOut(request);
+        if(!_serviceTargetFinder.verifyFormatOfApp(target.app)
+                || !_serviceTargetFinder.verifyFormatOfServiceName(target.service)
+                ) {
+            throw new IllegalArgumentException(
+                    "Script service target not found."
+                    + " app:" + target.app 
+                    + " service:" + target.service
+                    + " method:" + target.method
+                    );
+        }
+        
         final CompiledScript compiledScript = _scriptSourceContainer.findCompiledScript(target);
         if(compiledScript == null) {
             throw new IllegalArgumentException(
