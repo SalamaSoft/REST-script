@@ -36,7 +36,7 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     private final static Log logger = LogFactory.getLog(ScriptSourceContainer.class);
     
     static {
-        logger.info("ScriptSourceContainer VERSION: 1.0.0(20170802)");
+        logger.info("ScriptSourceContainer VERSION: 1.0.1(20170810)");
     }
     
     private final static String[] Resource_scripts_ForDefaultGlobalVars = new String[] {
@@ -662,24 +662,26 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
                 */
                 
                 //filters ------
-                final IScriptServicePreFilter servicePreFilter = jsObjToInterface(
-                        (Invocable) compileResult.engine, compileResult.jsObj, 
-                        IScriptServicePreFilter.class
-                        );
-                if(servicePreFilter != null) {
-                    _scriptServicePreFilterMap.put(compileResult.app, servicePreFilter);
-                    logger.info("servicePreFilter loaded. app:" + compileResult.app + " serviceName:" + servicePreFilter.serviceName());
+                {
+                    final IScriptServicePreFilter servicePreFilter = jsObjToInterface(
+                            (Invocable) compileResult.engine, compileResult.jsObj, 
+                            IScriptServicePreFilter.class
+                            );
+                    if(servicePreFilter != null) {
+                        _scriptServicePreFilterMap.put(compileResult.app, servicePreFilter);
+                        logger.info("servicePreFilter loaded. app:" + compileResult.app + " serviceName:" + servicePreFilter.serviceName());
+                    }
                 }
-                final IScriptServicePostFilter servicePostFilter = jsObjToInterface(
-                        (Invocable) compileResult.engine, compileResult.jsObj, 
-                        IScriptServicePostFilter.class
-                        );
-                if(servicePostFilter != null) {
-                    _scriptServicePostFilterMap.put(compileResult.app, servicePostFilter);
-                    logger.info("servicePostFilter loaded. app:" + compileResult.app + " serviceName:" + servicePreFilter.serviceName());
+                {
+                    final IScriptServicePostFilter servicePostFilter = jsObjToInterface(
+                            (Invocable) compileResult.engine, compileResult.jsObj, 
+                            IScriptServicePostFilter.class
+                            );
+                    if(servicePostFilter != null) {
+                        _scriptServicePostFilterMap.put(compileResult.app, servicePostFilter);
+                        logger.info("servicePostFilter loaded. app:" + compileResult.app + " serviceName:" + servicePostFilter.serviceName());
+                    }
                 }
-                
-                
             }
             addScriptContextLocation(compileResult.app, compileResult.serviceName);
             
