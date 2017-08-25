@@ -68,6 +68,11 @@ public class DirWatcher implements Closeable {
             return false;
         }
         
+        if(dir.isHidden()) {
+            logger.debug("ignore hidden directory:" + path);
+            return false;
+        }
+        
         final WatchServiceEntry watchServiceEntry = new WatchServiceEntry(path);
         //_watchServiceEntryList.add(watchServiceEntry);
         return _watchServiceEntryMap.put(path, watchServiceEntry) == null;

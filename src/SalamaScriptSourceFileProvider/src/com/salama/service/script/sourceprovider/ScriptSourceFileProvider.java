@@ -37,7 +37,7 @@ public class ScriptSourceFileProvider implements IScriptSourceProvider {
     private final static Log logger = LogFactory.getLog(ScriptSourceFileProvider.class);
     
     static {
-        logger.info("ScriptSourceFileProvider VERSION: 1.0.0(20170802)");
+        logger.info("ScriptSourceFileProvider VERSION: 1.0.1(20170823)");
     }
     
     public final static String DEFAULT_CHARSET_NAME = "utf-8";
