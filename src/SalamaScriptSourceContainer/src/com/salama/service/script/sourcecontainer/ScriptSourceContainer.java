@@ -31,6 +31,7 @@ import com.salama.service.script.core.IScriptSourceContainer;
 import com.salama.service.script.core.IServiceNameVerifier;
 import com.salama.service.script.core.ITextFile;
 import com.salama.service.script.core.ServiceTarget;
+import com.salama.service.script.util.XmlJsonObjParser;
 
 public class ScriptSourceContainer implements IScriptSourceContainer {
     private final static Log logger = LogFactory.getLog(ScriptSourceContainer.class);
@@ -344,7 +345,14 @@ public class ScriptSourceContainer implements IScriptSourceContainer {
     }
     
     private void loadDefaultGlobalVars() {
-        Charset charset = Charset.forName("utf-8");        
+        try {
+            XmlJsonObjParser.parseXmlOrJsonObj("{}");
+            logger.info("XmlJsonObjParser test resourcePath:" + XmlJsonObjParser.class.getResource("/com/salama/service/script/util/json.js"));
+        } catch (Throwable e) {
+            logger.error("Error in test XmlJsonObjParser!", e);
+        }
+        
+        Charset charset = Charset.forName("utf-8");
         for(String resPath : Resource_scripts_ForDefaultGlobalVars) {
             try {
                 InputStreamReader reader = new InputStreamReader(ScriptSourceContainer.class.getResourceAsStream(resPath), charset);
